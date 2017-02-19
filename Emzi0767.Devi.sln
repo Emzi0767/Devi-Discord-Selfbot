@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{43204F98-A52E-4836-9790-715BD7895CC6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{15A2E7AD-B46B-4148-9D85-310DF23678EE}"
+	ProjectSection(SolutionItems) = preProject
+		devi.json = devi.json
+		donger.json = donger.json
+		emoji.json = emoji.json
+		global.json = global.json
+	EndProjectSection
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Emzi0767.Devi", "src\Emzi0767.Devi\Emzi0767.Devi.xproj", "{40FE24B1-E5C7-4A22-B370-0B6BD1EADA3F}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Emzi0767.AppDomainPolyfill", "src\Emzi0767.AppDomainPolyfill\Emzi0767.AppDomainPolyfill.xproj", "{8EB35884-B429-4C6A-B574-D8A9093CB3DB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{40FE24B1-E5C7-4A22-B370-0B6BD1EADA3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40FE24B1-E5C7-4A22-B370-0B6BD1EADA3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40FE24B1-E5C7-4A22-B370-0B6BD1EADA3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40FE24B1-E5C7-4A22-B370-0B6BD1EADA3F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8EB35884-B429-4C6A-B574-D8A9093CB3DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8EB35884-B429-4C6A-B574-D8A9093CB3DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8EB35884-B429-4C6A-B574-D8A9093CB3DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8EB35884-B429-4C6A-B574-D8A9093CB3DB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{40FE24B1-E5C7-4A22-B370-0B6BD1EADA3F} = {43204F98-A52E-4836-9790-715BD7895CC6}
+		{8EB35884-B429-4C6A-B574-D8A9093CB3DB} = {43204F98-A52E-4836-9790-715BD7895CC6}
+	EndGlobalSection
+EndGlobal

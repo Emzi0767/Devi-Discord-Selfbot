@@ -1,0 +1,29 @@
+{
+  "title": "Developer Evaluation Implement (DEvI)",
+  "copyright": "Emzi0767 2017",
+  "description": "A Discord selfbot",
+  "version": "1.2.0-*",
+  "buildOptions": {
+    "emitEntryPoint": true
+  },
+
+  "dependencies": {
+    "Microsoft.NETCore.App": {
+      "type": "platform",
+      "version": "1.1.0"
+    },
+    "Emzi0767.AppDomainPolyfill": "1.0.0-*",
+    "Discord.Net": "1.0.0-rc-00595",
+    "Microsoft.CodeAnalysis.Scripting.Common": "2.1.0-rc5-61416-02",
+    "Microsoft.CodeAnalysis.CSharp.Scripting": "2.1.0-rc5-61416-02",
+    "Newtonsoft.Json": "9.0.2-beta1",
+    "Microsoft.Extensions.DependencyModel": "1.1.0",
+    "System.Runtime.Loader": "4.3.0"
+  },
+
+  "frameworks": {
+    "netcoreapp1.1": {
+      "imports": "dnxcore50"
+    }
+  }
+}

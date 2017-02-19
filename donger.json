@@ -1,0 +1,34 @@
+{
+	"dong": 
+	{
+		"lenny": "( ͡° ͜ʖ ͡°)",
+		"lenny_upside": "( ͜。 ͡ʖ ͜。)",
+		"lenny_blank": "( ͡o ͜ʖ ͡o)",
+		"lenny_disapproval": "( ͡ಠ ʖ̯ ͡ಠ)",
+		"disapproval": "ಠ_ಠ",
+		"notmad": "¯\\\\\\_(ツ)_/¯",
+		"jackpot": "(ง ͡ʘ ͜ʖ ͡ʘ)ง",
+		"spider_lenny": "/╲/\\\\╭( ͡° ͡° ͜ʖ ͡° ͡°)╮/\\\\╱\\\\",
+		"tableflip": "(╯°□°）╯︵ ┻━┻",
+		"rage": "ヽ༼ ಠ益ಠ ༽ﾉ",
+		"raise": "ヽ༼ຈل͜ຈ༽ﾉ",
+		"unflip": "┬─┬ノ( º _ ºノ)",
+		"bear": "ʕ•ᴥ•ʔ",
+		"disapproval_creep": "ಠ‿ಠ",
+		"o_o": "⊙.☉",
+		"cute": "•‿•",
+		"angry_flip": "(ノಠ益ಠ)ノ彡┻━┻",
+		"doggo": "•ᴥ•",
+		"zoidberg": "(V) (;,,;) (V)",
+		"zoidberg_disapproval": "(V) (ಠ,,,ಠ) (V)",
+		"kiddingme": "●_●",
+		
+	},
+	"alias":
+	{
+		"notmad": [ "shrug" ],
+		"spider_lenny": [ "lenny_spider" ],
+		"unflip": [ "respect_tables" ],
+		"disapproval_creep": [ "disapproval_happy" ]
+	}
+}
