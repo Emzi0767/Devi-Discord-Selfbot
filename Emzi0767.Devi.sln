@@ -11,6 +11,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		donger.json = donger.json
 		emoji.json = emoji.json
 		global.json = global.json
+		LICENSE.txt = LICENSE.txt
+		NOTICE.txt = NOTICE.txt
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Emzi0767.Devi", "src\Emzi0767.Devi\Emzi0767.Devi.xproj", "{40FE24B1-E5C7-4A22-B370-0B6BD1EADA3F}"
