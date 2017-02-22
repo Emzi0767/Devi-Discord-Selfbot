@@ -197,6 +197,23 @@ namespace Emzi0767.Devi
             await this.SendTextAsync(Program.Dongers.Dongers[dong]);
         }
 
+        [Command("imply")]
+        public async Task Imply([Remainder] string implication)
+        {
+            // <:Implying:261288929628651540>
+
+            var alph = "abcdefghijklmnopqrstuvwxyz".ToDictionary(xc => xc, xc => string.Concat("regional_indicator_", xc));
+            foreach (var xc in "0123456789")
+                alph.Add(xc, string.Concat("number_", xc));
+
+            var impc = implication
+                .ToLower()
+                .Select(xc => alph.ContainsKey(xc) ? string.Concat(":", alph[xc], ":") : xc.ToString());
+
+            var impl = string.Join(" ", impc);
+            await this.SendTextAsync(string.Concat("<:Implying:261288929628651540> ", impl));
+        }
+
         [Command("ping")]
         public async Task Ping()
         {
@@ -353,9 +370,9 @@ namespace Emzi0767.Devi
             var author = (IUser)author1 ?? author2;
 
             var color = (Color?)null;
-            if (author1 != null && (author1.RoleIds != null || author1.RoleIds.Any()))
+            if (author1 != null && (author1.Roles != null || author1.Roles.Any()))
             {
-                var roles = author1.RoleIds.Select(xid => ctx.Guild.GetRole(xid)).OrderByDescending(xrole => xrole.Position);
+                var roles = author1.Roles.OrderByDescending(xrole => xrole.Position);
                 var role = roles.FirstOrDefault(xr => xr.Color.RawValue != 0);
                 color = role != null ? (Color?)role.Color : null;
             }
