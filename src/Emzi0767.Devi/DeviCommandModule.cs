@@ -108,16 +108,60 @@ namespace Emzi0767.Devi
         [Command("emoji")]
         public async Task Emoji(string emoji)
         {
-            var msg = this.Context.Message;
-            if (!emoji.StartsWith("="))
+            if (emoji.StartsWith("="))
             {
-                var eid = Program.EmojiMap2.ContainsKey(emoji) ? Program.EmojiMap2[emoji] : "n/a";
-                await this.SendTextAsync(string.Concat("\\", emoji, " (", eid, ")"));
+                var e = emoji.Substring(1);
+                
+                if (Program.EmojiMap1.ContainsKey(e))
+                {
+                    e = Program.EmojiMap1[e];
+
+                    var utf32 = new UTF32Encoding(true, false);
+                    var eids = Program.EmojiMap2[e];
+                    var xchr = utf32.GetBytes(e);
+                    var echr = string.Concat(xchr.Select(xb => xb.ToString("X2")));
+                    echr = echr.StartsWith("0000") ? echr.Substring(4) : echr;
+                    echr = string.Concat("U+", echr);
+
+                    var estr = string.Concat("Character: `", e, "`");
+
+                    var einf = string.Concat("Emoji: ", e, " (\\", e, ")\n", estr, "\n", echr);
+
+                    if (eids != null && eids.Count() > 0)
+                        einf = string.Concat(einf, "\nKnown names: `", string.Join(", ", eids), "`");
+
+                    await this.SendTextAsync(einf);
+                }
+                else
+                {
+                    await this.SendTextAsync(string.Concat(Program.EmojiMap1["poop"], " (this is an error)"));
+                }
             }
             else
             {
-                var e = emoji.Substring(1);
-                await this.SendTextAsync(Program.EmojiMap1.ContainsKey(e) ? Program.EmojiMap1[e] : ":poop: (this is an error)");
+                var utf32 = new UTF32Encoding(true, false);
+                var eids = Program.EmojiMap2.ContainsKey(emoji) ? Program.EmojiMap2[emoji] : null;
+
+                if (!emoji.StartsWith("<:"))
+                {
+                    var xchr = utf32.GetBytes(emoji);
+                    var echr = string.Concat(xchr.Select(xb => xb.ToString("X2")));
+                    echr = echr.StartsWith("0000") ? echr.Substring(4) : echr;
+                    echr = string.Concat("U+", echr);
+
+                    var estr = string.Concat("Character: `", emoji, "`");
+
+                    var einf = string.Concat("Emoji: ", emoji, " (\\", emoji, ")\n", estr, "\n", echr);
+
+                    if (eids != null && eids.Count() > 0)
+                        einf = string.Concat(einf, "\nKnown names: `", string.Join(", ", eids), "`");
+
+                    await this.SendTextAsync(einf);
+                }
+                else
+                {
+                    await this.SendTextAsync(string.Concat("Emoji: ", emoji, " (`", emoji, "`)"));
+                }
             }
         }
 

@@ -24,10 +24,10 @@ namespace Emzi0767.Devi
 
         #region Settings and configuration
         public static DeviSettingStore Settings { get; set; }
-        public static Dictionary<string, string> EmojiMap1 { get; set; }
-        public static Dictionary<string, string> EmojiMap2 { get; set; }
+        public static IDictionary<string, string> EmojiMap1 { get; set; }
+        public static IDictionary<string, IEnumerable<string>> EmojiMap2 { get; set; }
         public static DeviDongerMap Dongers { get; set; }
-        public static Dictionary<string, string> GuildEmoji { get; set; }
+        public static IDictionary<string, string> GuildEmoji { get; set; }
         #endregion
 
         #region Tracking and temporary storage
@@ -62,12 +62,14 @@ namespace Emzi0767.Devi
             {
                 emx = File.ReadAllText(emx, new UTF8Encoding(false));
                 EmojiMap1 = JsonConvert.DeserializeObject<Dictionary<string, string>>(emx);
-                EmojiMap2 = EmojiMap1.ToDictionary(xkvp => xkvp.Value, xkvp => xkvp.Key);
+                EmojiMap2 = EmojiMap1
+                    .GroupBy(xkvp => xkvp.Value, xkvp => xkvp.Key)
+                    .ToDictionary(xg => xg.Key, xg => xg.AsEnumerable());
             }
             else
             {
                 EmojiMap1 = new Dictionary<string, string>();
-                EmojiMap2 = new Dictionary<string, string>();
+                EmojiMap2 = new Dictionary<string, IEnumerable<string>>();
             }
 
             if (File.Exists(dgx))
