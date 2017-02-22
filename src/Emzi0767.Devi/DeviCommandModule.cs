@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -206,9 +207,13 @@ namespace Emzi0767.Devi
             foreach (var xc in "0123456789")
                 alph.Add(xc, string.Concat("number_", xc));
 
+            alph = alph
+                .Select(xkvp => new KeyValuePair<char, string>(xkvp.Key, Program.EmojiMap1[xkvp.Value]))
+                .ToDictionary(xkvp => xkvp.Key, xkvp => xkvp.Value);
+
             var impc = implication
                 .ToLower()
-                .Select(xc => alph.ContainsKey(xc) ? string.Concat(":", alph[xc], ":") : xc.ToString());
+                .Select(xc => alph.ContainsKey(xc) ? alph[xc] : xc.ToString());
 
             var impl = string.Join(" ", impc);
             await this.SendTextAsync(string.Concat("<:Implying:261288929628651540> ", impl));
