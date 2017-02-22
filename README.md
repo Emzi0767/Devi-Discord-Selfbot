@@ -26,4 +26,8 @@ In order for bot to run, you will need to set up your environment.
 
 ##RUNNING
 
-DO `dotnet Emzi0767.Devi.exe`.
+Do `dotnet Emzi0767.Devi.dll` in your command line.
+
+###REQUIREMENTS
+
+In order to run the bot, you need .NET Core 1.1 Runtime, available [here](https://www.microsoft.com/net/download/core#/current/runtime).
