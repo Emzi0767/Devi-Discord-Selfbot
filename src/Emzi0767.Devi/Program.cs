@@ -102,7 +102,7 @@ namespace Emzi0767.Devi
             await commands.AddModuleAsync<DeviCommandModule>();
 
             await discord.LoginAsync(TokenType.User, Settings.Token);
-            await discord.ConnectAsync();
+            await discord.StartAsync();
 
             await Task.Delay(-1);
         }
