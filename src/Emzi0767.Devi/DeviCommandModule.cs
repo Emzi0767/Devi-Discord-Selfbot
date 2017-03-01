@@ -121,12 +121,12 @@ namespace Emzi0767.Devi
                     var eids = Program.EmojiMap2[e];
                     var xchr = utf32.GetBytes(e);
                     var echr = string.Concat(xchr.Select(xb => xb.ToString("X2")));
-                    echr = echr.StartsWith("0000") ? echr.Substring(4) : echr;
+                    //echr = echr.StartsWith("0000") ? echr.Substring(4) : echr;
                     echr = string.Concat("U+", echr);
 
                     var estr = string.Concat("Character: `", e, "`");
 
-                    var einf = string.Concat("Emoji: ", e, " (\\", e, ")\n", estr, "\n", echr);
+                    var einf = string.Concat("Emoji: ", e, "\n", estr, "\n", echr);
 
                     if (eids != null && eids.Count() > 0)
                         einf = string.Concat(einf, "\nKnown names: `", string.Join(", ", eids), "`");
@@ -152,7 +152,7 @@ namespace Emzi0767.Devi
 
                     var estr = string.Concat("Character: `", emoji, "`");
 
-                    var einf = string.Concat("Emoji: ", emoji, " (\\", emoji, ")\n", estr, "\n", echr);
+                    var einf = string.Concat("Emoji: ", emoji, ")\n", estr, "\n", echr);
 
                     if (eids != null && eids.Count() > 0)
                         einf = string.Concat(einf, "\nKnown names: `", string.Join(", ", eids), "`");
