@@ -1,5 +1,7 @@
 #Dynamic Evaluation Implement by Emzi0767
 
+[![Emzi's Central Dispatch](https://discordapp.com/api/guilds/207879549394878464/widget.png)](https://discord.gg/rGKrJDR)
+
 ##ABOUT
 
 A Discord selfbot built on top of [Discord.NET library](https://github.com/RogueException/Discord.Net). It's designed to provide a C# evaluator, quoting, and some other functionality.
@@ -31,3 +33,9 @@ Do `dotnet Emzi0767.Devi.dll` in your command line.
 ###REQUIREMENTS
 
 In order to run the bot, you need .NET Core 1.1 Runtime, available [here](https://www.microsoft.com/net/download/core#/current/runtime).
+
+##SUPPORT
+
+Should you still have any questions regarding the bot, feel free to join my server. I'll try to answer an questions:
+
+[![Emzi's Central Dispatch](https://discordapp.com/api/guilds/207879549394878464/embed.png?style=banner1)](https://discord.gg/rGKrJDR)
