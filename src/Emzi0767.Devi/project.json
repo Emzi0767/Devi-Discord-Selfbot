@@ -13,13 +13,12 @@
       "version": "1.1.0"
     },
     "Emzi0767.AppDomainPolyfill": "1.0.0-*",
-    "Microsoft.CodeAnalysis.Scripting.Common": "2.1.0-rc5-61416-02",
-    "Microsoft.CodeAnalysis.CSharp.Scripting": "2.1.0-rc5-61416-02",
     "Newtonsoft.Json": "9.0.2-beta1",
     "Microsoft.Extensions.DependencyModel": "1.1.0",
     "System.Runtime.Loader": "4.3.0",
-    "Discord.Net": "1.0.0-rc-00604"
-  },
+    "Discord.Net": "1.0.0-rc-00610",
+    "Microsoft.CodeAnalysis.CSharp.Scripting": "2.1.1-rc5-61428-03",
+    "Microsoft.CodeAnalysis.Scripting.Common": "2.1.1-rc5-61428-03"  },
 
   "frameworks": {
     "netcoreapp1.1": {

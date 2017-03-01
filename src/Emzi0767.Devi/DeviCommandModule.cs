@@ -385,7 +385,7 @@ namespace Emzi0767.Devi
             var embed = BuildEmbed(null, msq.Content, 0);
             embed.Color = color;
             embed.Author = new EmbedAuthorBuilder();
-            embed.Author.IconUrl = author.AvatarUrl;
+            embed.Author.IconUrl = author.GetAvatarUrl(AvatarFormat.WebP);
             embed.Author.Name = author1 != null ? author1.Nickname ?? author.Username : author.Username;
             embed.Timestamp = msq.Timestamp;
 
