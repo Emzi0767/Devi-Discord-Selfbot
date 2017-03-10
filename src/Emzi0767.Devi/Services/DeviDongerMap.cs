@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Emzi0767.Devi
+namespace Emzi0767.Devi.Services
 {
-    public class DeviDongerMap
+    public sealed class DeviDongerMap
     {
         [JsonProperty("dong")]
         public Dictionary<string, string> Dongers { get; set; }

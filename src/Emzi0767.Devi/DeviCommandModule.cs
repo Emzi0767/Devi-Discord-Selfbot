@@ -10,6 +10,7 @@ using Discord;
 using Discord.Commands;
 using Discord.Rest;
 using Discord.WebSocket;
+using Emzi0767.Devi.Services;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using Newtonsoft.Json;
@@ -18,6 +19,19 @@ namespace Emzi0767.Devi
 {
     public class DeviCommandModule : ModuleBase
     {
+        private DeviSettingStore Settings { get; set; }
+        private DeviEmojiMap EmojiMap { get; set; }
+        private DeviDongerMap Dongers { get; set; }
+        private DeviGuildEmojiMap GuildEmoji { get; set; }
+
+        public DeviCommandModule(DeviSettingStore settings, DeviEmojiMap emoji, DeviDongerMap dong, DeviGuildEmojiMap gemoji)
+        {
+            this.Settings = settings;
+            this.EmojiMap = emoji;
+            this.Dongers = dong;
+            this.GuildEmoji = gemoji;
+        }
+
         [Command("random"), Summary("Generates a random number between *min* and *max*.")]
         public async Task GenRandom(int min, int max)
         {
@@ -113,15 +127,14 @@ namespace Emzi0767.Devi
             {
                 var e = emoji.Substring(1);
                 
-                if (Program.EmojiMap1.ContainsKey(e))
+                if (this.EmojiMap.Mapping.ContainsKey(e))
                 {
-                    e = Program.EmojiMap1[e];
+                    e = this.EmojiMap.Mapping[e];
 
                     var utf32 = new UTF32Encoding(true, false);
-                    var eids = Program.EmojiMap2[e];
+                    var eids = this.EmojiMap.ReverseMapping[e];
                     var xchr = utf32.GetBytes(e);
                     var echr = string.Concat(xchr.Select(xb => xb.ToString("X2")));
-                    //echr = echr.StartsWith("0000") ? echr.Substring(4) : echr;
                     echr = string.Concat("U+", echr);
 
                     var estr = string.Concat("Character: `", e, "`");
@@ -135,13 +148,13 @@ namespace Emzi0767.Devi
                 }
                 else
                 {
-                    await this.SendTextAsync(string.Concat(Program.EmojiMap1["poop"], " (this is an error)"));
+                    await this.SendTextAsync(string.Concat(this.EmojiMap.Mapping["poop"], " (this is an error)"));
                 }
             }
             else
             {
                 var utf32 = new UTF32Encoding(true, false);
-                var eids = Program.EmojiMap2.ContainsKey(emoji) ? Program.EmojiMap2[emoji] : null;
+                var eids = this.EmojiMap.ReverseMapping.ContainsKey(emoji) ? this.EmojiMap.ReverseMapping[emoji] : null;
 
                 if (!emoji.StartsWith("<:"))
                 {
@@ -167,9 +180,9 @@ namespace Emzi0767.Devi
         }
 
         [Command("guildemoji")]
-        public async Task GuildEmoji()
+        public async Task GuildEmojiShow()
         {
-            var emoji = Program.GuildEmoji.OrderBy(xkvp => xkvp.Key).Select(xkvp => string.Concat(xkvp.Key.Replace("_", @"\_"), ": ", xkvp.Value));
+            var emoji = this.GuildEmoji.Mapping.OrderBy(xkvp => xkvp.Key).Select(xkvp => string.Concat(xkvp.Key.Replace("_", @"\_"), ": ", xkvp.Value));
             var sb = new StringBuilder();
             var embed = BuildEmbed("All guild emoji", emoji.Count().ToString("#,### total"), 0);
             foreach (var e in emoji)
@@ -186,16 +199,16 @@ namespace Emzi0767.Devi
         }
 
         [Command("guildemoji")]
-        public async Task GuildEmoji(string emoji)
+        public async Task GuildEmojiShow(string emoji)
         {
-            var e = Program.GuildEmoji[emoji];
+            var e = this.GuildEmoji.Mapping[emoji];
             await this.SendEmbedAsync(BuildEmbed(null, e, 0), "");
         }
 
         [Command("dong")]
         public async Task Dong(string dong)
         {
-            await this.SendTextAsync(Program.Dongers.Dongers[dong]);
+            await this.SendTextAsync(this.Dongers.Dongers[dong]);
         }
 
         [Command("imply")]
@@ -208,7 +221,7 @@ namespace Emzi0767.Devi
                 alph.Add(xc, string.Concat("number_", xc));
 
             alph = alph
-                .Select(xkvp => new KeyValuePair<char, string>(xkvp.Key, Program.EmojiMap1[xkvp.Value]))
+                .Select(xkvp => new KeyValuePair<char, string>(xkvp.Key, this.EmojiMap.Mapping[xkvp.Value]))
                 .ToDictionary(xkvp => xkvp.Key, xkvp => xkvp.Value);
 
             var impc = implication
@@ -233,7 +246,7 @@ namespace Emzi0767.Devi
         }
 
         [Command("settings")]
-        public async Task Settings(string setting, string operation, string value)
+        public async Task SettingsControl(string setting, string operation, string value)
         {
             var gld = this.Context.Guild as SocketGuild;
             if (gld == null)
@@ -246,9 +259,9 @@ namespace Emzi0767.Devi
             if (st == "prefix")
             {
                 if (op == "set")
-                    Program.Settings.Prefix = value;
+                    this.Settings.Prefix = value;
                 else if (op == "del")
-                    Program.Settings.Prefix = "devi:";
+                    this.Settings.Prefix = "devi:";
                 else rs ^= 1;
             }
             else rs ^= 2;
@@ -264,7 +277,7 @@ namespace Emzi0767.Devi
         [Command("save")]
         public async Task Save()
         {
-            var json = JsonConvert.SerializeObject(Program.Settings, Formatting.None);
+            var json = JsonConvert.SerializeObject(this.Settings, Formatting.None);
             var l = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             l = Path.Combine(l, "devi.json");
             File.WriteAllText(l, json, new UTF8Encoding(false));
@@ -274,7 +287,7 @@ namespace Emzi0767.Devi
 
         private async Task QuoteAsync(IMessage msg, string qmsg)
         {
-            var txt = qmsg ?? Program.EmojiMap1["speech_balloon"];
+            var txt = qmsg ?? this.EmojiMap.Mapping["speech_balloon"];
             txt = txt.Trim();
 
             var embed = (EmbedBuilder)null;

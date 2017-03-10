@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Emzi0767.Devi.Services;
 using Newtonsoft.Json;
 
 // DEvI: Dynamic Evaluation Implement
@@ -20,14 +21,14 @@ namespace Emzi0767.Devi
         #region Discord Client
         private static DiscordSocketClient DeviClient { get; set; }
         private static CommandService DeviCommands { get; set; }
+        private static DependencyMap DeviDependencies { get; set; }
         #endregion
 
         #region Settings and configuration
-        public static DeviSettingStore Settings { get; set; }
-        public static IDictionary<string, string> EmojiMap1 { get; set; }
-        public static IDictionary<string, IEnumerable<string>> EmojiMap2 { get; set; }
-        public static DeviDongerMap Dongers { get; set; }
-        public static IDictionary<string, string> GuildEmoji { get; set; }
+        private static DeviSettingStore Settings { get; set; }
+        private static DeviEmojiMap EmojiMap { get; set; }
+        private static DeviDongerMap Dongers { get; set; }
+        private static DeviGuildEmojiMap GuildEmoji { get; set; }
         #endregion
 
         #region Tracking and temporary storage
@@ -42,7 +43,7 @@ namespace Emzi0767.Devi
         private static async Task Order66()
         {
             var l = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-            GuildEmoji = new Dictionary<string, string>();
+            GuildEmoji = new DeviGuildEmojiMap(new Dictionary<string, string>());
 
             var stx = Path.Combine(l, "devi.json");
             var emx = Path.Combine(l, "emoji.json");
@@ -61,15 +62,12 @@ namespace Emzi0767.Devi
             if (File.Exists(emx))
             {
                 emx = File.ReadAllText(emx, new UTF8Encoding(false));
-                EmojiMap1 = JsonConvert.DeserializeObject<Dictionary<string, string>>(emx);
-                EmojiMap2 = EmojiMap1
-                    .GroupBy(xkvp => xkvp.Value, xkvp => xkvp.Key)
-                    .ToDictionary(xg => xg.Key, xg => xg.AsEnumerable());
+                var edict = JsonConvert.DeserializeObject<Dictionary<string, string>>(emx);
+                EmojiMap = new DeviEmojiMap(edict);
             }
             else
             {
-                EmojiMap1 = new Dictionary<string, string>();
-                EmojiMap2 = new Dictionary<string, IEnumerable<string>>();
+                EmojiMap = new DeviEmojiMap(new Dictionary<string, string>());
             }
 
             if (File.Exists(dgx))
@@ -84,6 +82,13 @@ namespace Emzi0767.Devi
                 Dongers.Dongers = new Dictionary<string, string>();
                 Dongers.Aliases = new Dictionary<string, List<string>>();
             }
+
+            var depmap = new DependencyMap();
+            depmap.Add(Settings);
+            depmap.Add(EmojiMap);
+            depmap.Add(Dongers);
+            depmap.Add(GuildEmoji);
+            DeviDependencies = depmap;
 
             var discord = new DiscordSocketClient(new DiscordSocketConfig() { LogLevel = LogSeverity.Verbose });
             DeviClient = discord;
@@ -114,7 +119,7 @@ namespace Emzi0767.Devi
             foreach (var e in emoji)
             {
                 var es = string.Concat("<:X:", e.Id, ">");
-                GuildEmoji[e.Name.ToLower()] = es;
+                GuildEmoji.Mapping[e.Name.ToLower()] = es;
             }
             return Task.CompletedTask;
         }
@@ -138,7 +143,7 @@ namespace Emzi0767.Devi
             if (arg3.UserId != msg.Author.Id)
                 return;
 
-            if (arg3.Emoji.Name == EmojiMap1["x"])
+            if (arg3.Emoji.Name == EmojiMap.Mapping["x"])
                 await msg.DeleteAsync();
         }
 
@@ -178,7 +183,7 @@ namespace Emzi0767.Devi
             await Task.Delay(DeviClient.Latency);
 
             var ctx = new CommandContext(DeviClient, msg);
-            var res = await DeviCommands.ExecuteAsync(ctx, apos);
+            var res = await DeviCommands.ExecuteAsync(ctx, apos, DeviDependencies);
             if (!res.IsSuccess)
             {
                 var embed = new EmbedBuilder();
