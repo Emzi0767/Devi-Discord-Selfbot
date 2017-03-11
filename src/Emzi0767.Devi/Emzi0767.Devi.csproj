@@ -38,4 +38,8 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="2.1.1-rc5-61428-03" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Properties\PublishProfiles\" />
+  </ItemGroup>
+
 </Project>

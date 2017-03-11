@@ -34,7 +34,11 @@ Do `dotnet Emzi0767.Devi.dll` in your command line.
 
 In order to run the bot, you need .NET Core 1.1 Runtime, available [here](https://www.microsoft.com/net/download/core#/current/runtime).
 
-##SUPPORT
+##SUPPORT ME
+
+If you feel like supporting me by providing me with currency that I can exchange for goods and services, you can do so on [my Patreon](https://www.patreon.com/emzi0767).
+
+##ADDITIONAL HELP
 
 Should you still have any questions regarding the bot, feel free to join my server. I'll try to answer an questions:
 
