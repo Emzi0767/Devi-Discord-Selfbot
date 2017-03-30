@@ -6,6 +6,8 @@
 
 A Discord selfbot built on top of [Discord.NET library](https://github.com/RogueException/Discord.Net). It's designed to provide a C# evaluator, quoting, and some other functionality.
 
+More information is available on [its GitHub page](https://emzi0767.github.io/discord/devi/).
+
 ## BUILDING
 
 You need .NET Core 1.1 SDK to build the project, and .NET Core 1.1 runtime to run it.
