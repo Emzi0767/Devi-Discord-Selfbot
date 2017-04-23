@@ -57,8 +57,11 @@ namespace Emzi0767.Devi
 
             try
             {
-                var globals = new DeviVariables();
-                globals.Message = this.Context.Message as SocketUserMessage;
+                var globals = new DeviVariables()
+                {
+                    Message = this.Context.Message as SocketUserMessage,
+                    Client = this.Context.Client as DiscordSocketClient
+                };
 
                 var sopts = ScriptOptions.Default;
                 sopts = sopts.WithImports("System", "System.Linq", "Discord", "Discord.WebSocket");
@@ -86,14 +89,18 @@ namespace Emzi0767.Devi
             var gld = cln.Guilds.FirstOrDefault(xg => xg.Id == guild) as SocketGuild;
             var chn = gld.Channels.FirstOrDefault(xc => xc.Id == channel) as SocketTextChannel;
 
-            var embed = new EmbedBuilder();
-            embed.Color = new Color(5267072);
-            embed.Url = "https://discordapp.com/nitro";
-            embed.Author = new EmbedAuthorBuilder();
-            embed.Author.Name = "Discord Nitro Message";
-            embed.Author.IconUrl = "https://cdn.discordapp.com/emojis/261735650192130049.png";
-            embed.Description = "**Discord Nitro** is required to view this message.";
-            embed.ThumbnailUrl = "http://i.imgur.com/1dH8EJa.png";
+            var embed = new EmbedBuilder()
+            {
+                Color = new Color(5267072),
+                Url = "https://discordapp.com/nitro",
+                Description = "**Discord Nitro** is required to view this message.",
+                ThumbnailUrl = "http://i.imgur.com/1dH8EJa.png",
+                Author = new EmbedAuthorBuilder()
+                {
+                    Name = "Discord Nitro Message",
+                    IconUrl = "https://cdn.discordapp.com/emojis/261735650192130049.png"
+                }
+            };
 
             await chn.SendMessageAsync("", false, embed.Build());
         }
@@ -358,9 +365,11 @@ namespace Emzi0767.Devi
 
         private static EmbedBuilder BuildEmbed(string title, string desc, int type)
         {
-            var embed = new EmbedBuilder();
-            embed.Title = title;
-            embed.Description = desc;
+            var embed = new EmbedBuilder()
+            {
+                Title = title,
+                Description = desc
+            };
             switch (type)
             {
                 default:
@@ -381,7 +390,7 @@ namespace Emzi0767.Devi
             return embed;
         }
 
-        private static EmbedBuilder BuildQuoteEmbed(IMessage msq, CommandContext ctx)
+        private static EmbedBuilder BuildQuoteEmbed(IMessage msq, ICommandContext ctx)
         {
             var author1 = msq.Author as SocketGuildUser;
             var author2 = msq.Author as RestUser;
@@ -397,10 +406,12 @@ namespace Emzi0767.Devi
 
             var embed = BuildEmbed(null, msq.Content, 0);
             embed.Color = color;
-            embed.Author = new EmbedAuthorBuilder();
-            embed.Author.IconUrl = author.GetAvatarUrl(AvatarFormat.WebP);
-            embed.Author.Name = author1 != null ? author1.Nickname ?? author.Username : author.Username;
             embed.Timestamp = msq.Timestamp;
+            embed.Author = new EmbedAuthorBuilder()
+            {
+                IconUrl = author.GetAvatarUrl(ImageFormat.WebP),
+                Name = author1 != null ? author1.Nickname ?? author.Username : author.Username
+            };
 
             var att = msq.Attachments.FirstOrDefault();
             if (att != null)

@@ -78,9 +78,11 @@ namespace Emzi0767.Devi
             }
             else
             {
-                Dongers = new DeviDongerMap();
-                Dongers.Dongers = new Dictionary<string, string>();
-                Dongers.Aliases = new Dictionary<string, List<string>>();
+                Dongers = new DeviDongerMap()
+                {
+                    Dongers = new Dictionary<string, string>(),
+                    Aliases = new Dictionary<string, List<string>>()
+                };
             }
 
             var depmap = new DependencyMap();
@@ -124,16 +126,14 @@ namespace Emzi0767.Devi
             return Task.CompletedTask;
         }
 
-        private static async Task Discord_ReactionAdded(ulong arg1, Optional<SocketUserMessage> arg2, SocketReaction arg3)
+        //private static async Task Discord_ReactionAdded(ulong arg1, Optional<SocketUserMessage> arg2, SocketReaction arg3)
+        private static async Task Discord_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
         {
-            var chn = arg3.Channel as SocketTextChannel;
-            if (chn == null || chn.Guild == null)
-                return;
-            
-            if (!arg3.Message.IsSpecified)
+            var chn = arg2 as SocketTextChannel;
+            if (chn == null)
                 return;
 
-            var msg = DeviMessageTracker.FirstOrDefault(xmsg => xmsg.Id == arg3.MessageId);
+            var msg = DeviMessageTracker.FirstOrDefault(xmsg => xmsg.Id == arg1.Id);
             if (msg == null)
                 return;
 
@@ -186,12 +186,14 @@ namespace Emzi0767.Devi
             var res = await DeviCommands.ExecuteAsync(ctx, apos, DeviDependencies);
             if (!res.IsSuccess)
             {
-                var embed = new EmbedBuilder();
-                embed.Color = new Color(255, 127, 0);
-                embed.ThumbnailUrl = "http://i.imgur.com/F9HGvxs.jpg";
-                embed.Title = "Evaluation error";
-                embed.Description = res.ErrorReason;
-                
+                var embed = new EmbedBuilder()
+                {
+                    Color = new Color(255, 127, 0),
+                    ThumbnailUrl = "http://i.imgur.com/F9HGvxs.jpg",
+                    Title = "Evaluation error",
+                    Description = res.ErrorReason
+                };
+
                 await SendEmbedAsync(embed, msg);
             }
         }
