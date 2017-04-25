@@ -6,9 +6,8 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
 using Emzi0767.Devi.Services;
 using Newtonsoft.Json;
 
@@ -19,20 +18,19 @@ namespace Emzi0767.Devi
     internal static class Program
     {
         #region Discord Client
-        private static DiscordSocketClient DeviClient { get; set; }
-        private static CommandService DeviCommands { get; set; }
-        private static DependencyMap DeviDependencies { get; set; }
+        private static DiscordClient DeviClient { get; set; }
+        private static CommandsNextModule DeviCommands { get; set; }
         #endregion
 
         #region Settings and configuration
-        private static DeviSettingStore Settings { get; set; }
-        private static DeviEmojiMap EmojiMap { get; set; }
-        private static DeviDongerMap Dongers { get; set; }
-        private static DeviGuildEmojiMap GuildEmoji { get; set; }
+        internal static DeviSettingStore Settings { get; set; }
+        internal static DeviEmojiMap EmojiMap { get; set; }
+        internal static DeviDongerMap Dongers { get; set; }
+        internal static DeviGuildEmojiMap GuildEmoji { get; set; }
         #endregion
 
         #region Tracking and temporary storage
-        private static List<SocketUserMessage> DeviMessageTracker { get; set; }
+        private static List<DiscordMessage> DeviMessageTracker { get; set; }
         #endregion
 
         internal static void Main(string[] args)
@@ -85,37 +83,29 @@ namespace Emzi0767.Devi
                 };
             }
 
-            var depmap = new DependencyMap();
-            depmap.Add(Settings);
-            depmap.Add(EmojiMap);
-            depmap.Add(Dongers);
-            depmap.Add(GuildEmoji);
-            DeviDependencies = depmap;
-
-            var discord = new DiscordSocketClient(new DiscordSocketConfig() { LogLevel = LogSeverity.Verbose });
+            var discord = new DiscordClient(new DiscordConfig() { LogLevel = LogLevel.Debug, Token = Settings.Token, TokenType = TokenType.User });
             DeviClient = discord;
-
-            var commands = new CommandService();
+            
+            var commands = discord.UseCommandsNext(new CommandsNextConfiguration { Prefix = Settings.Prefix, SelfBot = true, EnableDefaultHelp = false, EnableMentionPrefix = false });
             DeviCommands = commands;
+            DeviCommands.RegisterCommands<DeviCommandModule>();
 
-            DeviMessageTracker = new List<SocketUserMessage>();
+            DeviMessageTracker = new List<DiscordMessage>();
 
             discord.GuildAvailable += Discord_GuildAvailable;
-            discord.MessageReceived += Discord_MessageReceived;
+            discord.MessageCreated += Discord_MessageReceived;
             discord.Ready += Discord_Ready;
-            discord.Log += Discord_Log;
-            discord.ReactionAdded += Discord_ReactionAdded;
-
-            await commands.AddModuleAsync<DeviCommandModule>();
-
-            await discord.LoginAsync(TokenType.User, Settings.Token);
-            await discord.StartAsync();
+            discord.DebugLogger.LogMessageReceived += Discord_Log;
+            discord.MessageReactionAdd += Discord_ReactionAdded;
+            
+            await discord.ConnectAsync();
 
             await Task.Delay(-1);
         }
 
-        private static Task Discord_GuildAvailable(SocketGuild arg)
+        private static Task Discord_GuildAvailable(GuildCreateEventArgs ea)
         {
+            var arg = ea.Guild;
             var emoji = arg.Emojis;
             if (emoji == null) return Task.CompletedTask;
             foreach (var e in emoji)
@@ -127,82 +117,67 @@ namespace Emzi0767.Devi
         }
 
         //private static async Task Discord_ReactionAdded(ulong arg1, Optional<SocketUserMessage> arg2, SocketReaction arg3)
-        private static async Task Discord_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
+        private static async Task Discord_ReactionAdded(MessageReactionAddEventArgs ea)
         {
-            var chn = arg2 as SocketTextChannel;
+            var arg1 = ea.MessageID;
+            var arg2 = ea.Channel;
+
+            var chn = arg2;
             if (chn == null)
                 return;
 
-            var msg = DeviMessageTracker.FirstOrDefault(xmsg => xmsg.Id == arg1.Id);
+            var msg = DeviMessageTracker.FirstOrDefault(xmsg => xmsg.Id == arg1);
             if (msg == null)
                 return;
 
-            if (msg.Author.Id != DeviClient.CurrentUser.Id)
+            if (msg.Author.Id != DeviClient.Me.Id)
                 return;
 
-            if (arg3.UserId != msg.Author.Id)
+            if (ea.UserID != msg.Author.Id)
                 return;
 
-            if (arg3.Emoji.Name == EmojiMap.Mapping["x"])
+            if (ea.Emoji.Name == EmojiMap.Mapping["x"])
                 await msg.DeleteAsync();
         }
 
-        private static Task Discord_Log(LogMessage arg)
+        private static void Discord_Log(object sender, DebugLogMessageEventArgs arg)
         {
-            Console.WriteLine(string.Concat("[", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss zzz"), "] [", arg.Severity, "] ", arg.Message));
-            return Task.CompletedTask;
+            Console.WriteLine(string.Concat("[", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss zzz"), "] [", arg.Level, "] ", arg.Message));
         }
 
-        private static Task Discord_Ready()
+        private static Task Discord_Ready(ReadyEventArgs ea)
         {
             var timer1 = new Timer(new TimerCallback(DeviTimerCallback), null, 5000, 300000);
             var timer2 = new Timer(new TimerCallback(DeviSettingsCallback), null, 5000, 1800000);
             return Task.CompletedTask;
         }
 
-        private static async Task Discord_MessageReceived(SocketMessage arg)
+        private static async Task Discord_MessageReceived(MessageCreateEventArgs ea)
         {
-            var msg = arg as SocketUserMessage;
+            var arg = ea.Message;
+            var msg = arg;
             if (msg == null)
                 return;
 
-            var chn = msg.Channel as SocketTextChannel;
+            var chn = msg.Channel;
             if (chn == null || chn.Guild == null)
                 return;
             
-            if (msg.Author.Id != DeviClient.CurrentUser.Id)
+            if (msg.Author.Id != DeviClient.Me.Id)
                 return;
 
-            if (msg.Author.Id == DeviClient.CurrentUser.Id)
+            if (msg.Author.Id == DeviClient.Me.Id)
                 DeviMessageTracker.Add(msg);
-            int apos = 0;
-            if (!msg.HasStringPrefix(Settings.Prefix, ref apos))
-                return;
 
             DeviMessageTracker.Add(msg);
-            await Task.Delay(DeviClient.Latency);
-
-            var ctx = new CommandContext(DeviClient, msg);
-            var res = await DeviCommands.ExecuteAsync(ctx, apos, DeviDependencies);
-            if (!res.IsSuccess)
-            {
-                var embed = new EmbedBuilder()
-                {
-                    Color = new Color(255, 127, 0),
-                    ThumbnailUrl = "http://i.imgur.com/F9HGvxs.jpg",
-                    Title = "Evaluation error",
-                    Description = res.ErrorReason
-                };
-
-                await SendEmbedAsync(embed, msg);
-            }
+            await Task.Delay(DeviClient.Ping);
         }
 
         private static void DeviTimerCallback(object _)
         {
-            var delmg = new List<SocketUserMessage>();
+            var delmg = new List<DiscordMessage>();
             foreach (var msg in DeviMessageTracker)
-                if (msg.CreatedAt.AddMinutes(30).ToLocalTime() < DateTimeOffset.Now)
+                if (msg.CreationDate.AddMinutes(30).ToLocalTime() < DateTimeOffset.Now)
                     delmg.Add(msg);
             foreach (var msg in delmg)
                 DeviMessageTracker.Remove(msg);
@@ -217,38 +192,31 @@ namespace Emzi0767.Devi
         }
 
         #region T/E
-        private static async Task<IUserMessage> SendTextAsync(string content, IUserMessage nmsg)
+        private static async Task<DiscordMessage> SendTextAsync(string content, DiscordMessage nmsg)
         {
             var msg = nmsg;
-            var mod = msg.Author.Id == DeviClient.CurrentUser.Id;
+            var mod = msg.Author.Id == DeviClient.Me.Id;
 
             if (mod)
-                await msg.ModifyAsync(x => x.Content = content);
+                await msg.EditAsync(content);
             else
                 msg = await msg.Channel.SendMessageAsync(string.Concat(msg.Author.Mention, ": ", content));
 
             return msg;
         }
 
-        private static Task<IUserMessage> SendEmbedAsync(EmbedBuilder embed, IUserMessage nmsg)
+        private static Task<DiscordMessage> SendEmbedAsync(DiscordEmbed embed, DiscordMessage nmsg)
         {
             return SendEmbedAsync(embed, null, nmsg);
         }
 
-        private static async Task<IUserMessage> SendEmbedAsync(EmbedBuilder embed, string content, IUserMessage nmsg)
+        private static async Task<DiscordMessage> SendEmbedAsync(DiscordEmbed embed, string content, DiscordMessage nmsg)
         {
             var msg = nmsg;
-            var mod = msg.Author.Id == DeviClient.CurrentUser.Id;
+            var mod = msg.Author.Id == DeviClient.Me.Id;
 
             if (mod)
-                await msg.ModifyAsync(x =>
-                {
-                    x.Embed = embed.Build();
-                    if (!string.IsNullOrWhiteSpace(content))
-                        x.Content = content;
-                    else
-                        x.Content = msg.Content;
-                });
+                await msg.EditAsync(!string.IsNullOrWhiteSpace(content) ? content : msg.Content, embed);
             else if (!string.IsNullOrWhiteSpace(content))
                 msg = await msg.Channel.SendMessageAsync(string.Concat(msg.Author.Mention, ": ", content), false, embed);
             else

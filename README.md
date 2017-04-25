@@ -4,7 +4,7 @@
 
 ## ABOUT
 
-A Discord selfbot built on top of [Discord.NET library](https://github.com/RogueException/Discord.Net). It's designed to provide a C# evaluator, quoting, and some other functionality.
+A Discord selfbot built on top of [DSharpPlus library](https://github.com/NaamloosDT/DSharpPlus). It's designed to provide a C# evaluator, quoting, and some other functionality.
 
 More information is available on [its GitHub page](https://emzi0767.github.io/discord/devi/).
 
