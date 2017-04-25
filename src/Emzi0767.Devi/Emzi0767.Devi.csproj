@@ -14,15 +14,15 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <Authors>Emzi0767</Authors>
     <PackageProjectUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/blob/master/LICENSE.txt</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageTags>Discord, DSharpPlus, Discord API, Discord bot, Discord selfbot, bot, selfbot, .NET, CSharp, Roslyn, Dynamic evaluation, Evaluation, Evaluator</PackageTags>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.0</FileVersion>
+    <AssemblyVersion>2.0.1.0</AssemblyVersion>
+    <FileVersion>2.0.1.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.0'">

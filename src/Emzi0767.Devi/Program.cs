@@ -85,7 +85,12 @@ namespace Emzi0767.Devi
 
             var discord = new DiscordClient(new DiscordConfig() { LogLevel = LogLevel.Debug, Token = Settings.Token, TokenType = TokenType.User });
             DeviClient = discord;
-            
+
+#if NET47
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+                DeviClient.SetSocketImplementation<WebSocketSharpClient>();
+#endif
+
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration { Prefix = Settings.Prefix, SelfBot = true, EnableDefaultHelp = false, EnableMentionPrefix = false });
             DeviCommands = commands;
             DeviCommands.RegisterCommands<DeviCommandModule>();
