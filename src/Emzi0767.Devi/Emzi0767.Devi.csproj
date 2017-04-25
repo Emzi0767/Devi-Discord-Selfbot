@@ -50,8 +50,4 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-beta1-61621-04" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Properties\PublishProfiles\" />
-  </ItemGroup>
-
 </Project>
