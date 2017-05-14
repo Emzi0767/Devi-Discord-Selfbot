@@ -10,6 +10,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Emzi0767.Devi.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
 // DEvI: Dynamic Evaluation Implement
@@ -21,7 +22,7 @@ namespace Emzi0767.Devi
         #region Discord Client
         private static DiscordSocketClient DeviClient { get; set; }
         private static CommandService DeviCommands { get; set; }
-        private static DependencyMap DeviDependencies { get; set; }
+        private static IServiceProvider DeviDependencies { get; set; }
         #endregion
 
         #region Settings and configuration
@@ -85,12 +86,12 @@ namespace Emzi0767.Devi
                 };
             }
 
-            var depmap = new DependencyMap();
-            depmap.Add(Settings);
-            depmap.Add(EmojiMap);
-            depmap.Add(Dongers);
-            depmap.Add(GuildEmoji);
-            DeviDependencies = depmap;
+            var depmap = new ServiceCollection()
+                .AddSingleton(Settings)
+                .AddSingleton(EmojiMap)
+                .AddSingleton(Dongers)
+                .AddSingleton(GuildEmoji);
+            DeviDependencies = depmap.BuildServiceProvider();
 
             var discord = new DiscordSocketClient(new DiscordSocketConfig() { LogLevel = LogSeverity.Verbose });
             DeviClient = discord;
@@ -116,9 +117,9 @@ namespace Emzi0767.Devi
 
         private static Task Discord_GuildAvailable(SocketGuild arg)
         {
-            var emoji = arg.Emojis;
-            if (emoji == null) return Task.CompletedTask;
-            foreach (var e in emoji)
+            var emotes = arg.Emotes;
+            if (emotes == null) return Task.CompletedTask;
+            foreach (var e in emotes)
             {
                 var es = string.Concat("<:X:", e.Id, ">");
                 GuildEmoji.Mapping[e.Name.ToLower()] = es;
@@ -143,7 +144,7 @@ namespace Emzi0767.Devi
             if (arg3.UserId != msg.Author.Id)
                 return;
 
-            if (arg3.Emoji.Name == EmojiMap.Mapping["x"])
+            if (arg3.Emote.Name == EmojiMap.Mapping["x"])
                 await msg.DeleteAsync();
         }
 
@@ -155,8 +156,8 @@ namespace Emzi0767.Devi
 
         private static Task Discord_Ready()
         {
-            var timer1 = new Timer(new TimerCallback(DeviTimerCallback), null, 5000, 300000);
-            var timer2 = new Timer(new TimerCallback(DeviSettingsCallback), null, 5000, 1800000);
+            var timer1 = new Timer(new TimerCallback(DeviTimerCallback), null, TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5));
+            var timer2 = new Timer(new TimerCallback(DeviSettingsCallback), null, TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(30));
             return Task.CompletedTask;
         }
 
