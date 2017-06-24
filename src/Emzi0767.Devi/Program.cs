@@ -190,7 +190,7 @@ namespace Emzi0767.Devi
                 var embed = new EmbedBuilder()
                 {
                     Color = new Color(255, 127, 0),
-                    ThumbnailUrl = "http://i.imgur.com/F9HGvxs.jpg",
+                    ThumbnailUrl = new Uri("http://i.imgur.com/F9HGvxs.jpg"),
                     Title = "Evaluation error",
                     Description = res.ErrorReason
                 };

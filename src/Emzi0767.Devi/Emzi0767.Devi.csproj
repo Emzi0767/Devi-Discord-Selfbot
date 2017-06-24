@@ -5,7 +5,8 @@
     <Copyright>Emzi0767 2017</Copyright>
     <AssemblyTitle>Dynamic Evaluation Implement (DEvI)</AssemblyTitle>
     <VersionPrefix>1.4.0</VersionPrefix>
-    <TargetFrameworks>netcoreapp1.1;netcoreapp2.0</TargetFrameworks>
+    <!-- <TargetFrameworks>netcoreapp1.1;netcoreapp2.0</TargetFrameworks> -->
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>Emzi0767.Devi</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Emzi0767.Devi</PackageId>
@@ -26,10 +27,11 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.0'">
-    <RuntimeFrameworkVersion>2.0.0-beta-001836-00</RuntimeFrameworkVersion>
+    <!-- <RuntimeFrameworkVersion>2.0.0-beta-001836-00</RuntimeFrameworkVersion> -->
+    <RuntimeFrameworkVersion>2.0.0-preview3-25423-02</RuntimeFrameworkVersion>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'!='netcoreapp2.0'">
+  <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp1.1'">
     <ProjectReference Include="..\Emzi0767.AppDomainPolyfill\Emzi0767.AppDomainPolyfill.csproj" />
   </ItemGroup>
 
@@ -37,9 +39,9 @@
     <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="1.1.2" />
     <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
-    <PackageReference Include="Discord.Net" Version="1.0.0-rc3-00742" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-beta1-61621-04" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-beta1-61621-04" />
+    <PackageReference Include="Discord.Net" Version="1.0.0-rc3-00767" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-dev-61717-03" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-dev-61717-03" />
   </ItemGroup>
 
   <ItemGroup>

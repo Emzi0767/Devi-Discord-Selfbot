@@ -92,13 +92,13 @@ namespace Emzi0767.Devi
             var embed = new EmbedBuilder()
             {
                 Color = new Color(5267072),
-                Url = "https://discordapp.com/nitro",
+                Url = new Uri("https://discordapp.com/nitro"),
                 Description = "**Discord Nitro** is required to view this message.",
-                ThumbnailUrl = "http://i.imgur.com/1dH8EJa.png",
+                ThumbnailUrl = new Uri("http://i.imgur.com/1dH8EJa.png"),
                 Author = new EmbedAuthorBuilder()
                 {
                     Name = "Discord Nitro Message",
-                    IconUrl = "https://cdn.discordapp.com/emojis/261735650192130049.png"
+                    IconUrl = new Uri("https://cdn.discordapp.com/emojis/261735650192130049.png")
                 }
             };
 
@@ -386,7 +386,7 @@ namespace Emzi0767.Devi
                     break;
             }
             if (type == 1)
-                embed.ThumbnailUrl = "http://i.imgur.com/F9HGvxs.jpg";
+                embed.ThumbnailUrl = new Uri("http://i.imgur.com/F9HGvxs.jpg");
             return embed;
         }
 
@@ -409,7 +409,7 @@ namespace Emzi0767.Devi
             embed.Timestamp = msq.Timestamp;
             embed.Author = new EmbedAuthorBuilder()
             {
-                IconUrl = author.GetAvatarUrl(ImageFormat.WebP),
+                IconUrl = new Uri(author.GetAvatarUrl(ImageFormat.WebP)),
                 Name = author1 != null ? author1.Nickname ?? author.Username : author.Username
             };
 
@@ -424,7 +424,7 @@ namespace Emzi0767.Devi
                 });
 
                 if (att.Width != null && att.Height != null)
-                    embed.ImageUrl = att.Url;
+                    embed.ImageUrl = new Uri(att.Url);
             }
 
             return embed;
