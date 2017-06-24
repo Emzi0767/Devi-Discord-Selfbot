@@ -91,7 +91,7 @@ namespace Emzi0767.Devi
                 DeviClient.SetSocketImplementation<WebSocketSharpClient>();
 #endif
 
-            var commands = discord.UseCommandsNext(new CommandsNextConfiguration { Prefix = Settings.Prefix, SelfBot = true, EnableDefaultHelp = false, EnableMentionPrefix = false });
+            var commands = discord.UseCommandsNext(new CommandsNextConfiguration { StringPrefix = Settings.Prefix, SelfBot = true, EnableDefaultHelp = false, EnableMentionPrefix = false });
             DeviCommands = commands;
             DeviCommands.RegisterCommands<DeviCommandModule>();
 
@@ -124,7 +124,7 @@ namespace Emzi0767.Devi
         //private static async Task Discord_ReactionAdded(ulong arg1, Optional<SocketUserMessage> arg2, SocketReaction arg3)
         private static async Task Discord_ReactionAdded(MessageReactionAddEventArgs ea)
         {
-            var arg1 = ea.MessageID;
+            var arg1 = ea.Message.Id;
             var arg2 = ea.Channel;
 
             var chn = arg2;
@@ -135,10 +135,10 @@ namespace Emzi0767.Devi
             if (msg == null)
                 return;
 
-            if (msg.Author.Id != DeviClient.Me.Id)
+            if (msg.Author.Id != DeviClient.CurrentUser.Id)
                 return;
 
-            if (ea.UserID != msg.Author.Id)
+            if (ea.User.Id != msg.Author.Id)
                 return;
 
             if (ea.Emoji.Name == EmojiMap.Mapping["x"])
@@ -168,10 +168,10 @@ namespace Emzi0767.Devi
             if (chn == null || chn.Guild == null)
                 return;
             
-            if (msg.Author.Id != DeviClient.Me.Id)
+            if (msg.Author.Id != DeviClient.CurrentUser.Id)
                 return;
 
-            if (msg.Author.Id == DeviClient.Me.Id)
+            if (msg.Author.Id == DeviClient.CurrentUser.Id)
                 DeviMessageTracker.Add(msg);
 
             DeviMessageTracker.Add(msg);
@@ -200,7 +200,7 @@ namespace Emzi0767.Devi
         private static async Task<DiscordMessage> SendTextAsync(string content, DiscordMessage nmsg)
         {
             var msg = nmsg;
-            var mod = msg.Author.Id == DeviClient.Me.Id;
+            var mod = msg.Author.Id == DeviClient.CurrentUser.Id;
 
             if (mod)
                 await msg.EditAsync(content);
@@ -218,7 +218,7 @@ namespace Emzi0767.Devi
         private static async Task<DiscordMessage> SendEmbedAsync(DiscordEmbed embed, string content, DiscordMessage nmsg)
         {
             var msg = nmsg;
-            var mod = msg.Author.Id == DeviClient.Me.Id;
+            var mod = msg.Author.Id == DeviClient.CurrentUser.Id;
 
             if (mod)
                 await msg.EditAsync(!string.IsNullOrWhiteSpace(content) ? content : msg.Content, embed);

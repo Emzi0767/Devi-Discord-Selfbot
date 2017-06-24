@@ -323,7 +323,7 @@ namespace Emzi0767.Devi
         private async Task<DiscordMessage> SendTextAsync(CommandContext ctx, string content, DiscordMessage nmsg)
         {
             var msg = nmsg;
-            var mod = msg.Author.Id == ctx.Client.Me.Id;
+            var mod = msg.Author.Id == ctx.Client.CurrentUser.Id;
 
             if (mod)
                 await msg.EditAsync(content);
@@ -351,7 +351,7 @@ namespace Emzi0767.Devi
         private async Task<DiscordMessage> SendEmbedAsync(CommandContext ctx, DiscordEmbed embed, string content, DiscordMessage nmsg)
         {
             var msg = nmsg;
-            var mod = msg.Author.Id == ctx.Client.Me.Id;
+            var mod = msg.Author.Id == ctx.Client.CurrentUser.Id;
 
             if (mod)
                 await msg.EditAsync(!string.IsNullOrWhiteSpace(content) ? content : msg.Content, embed);
@@ -396,7 +396,7 @@ namespace Emzi0767.Devi
             var author1 = ctx.Guild.GetMemberAsync(author.Id).GetAwaiter().GetResult();
 
             var color = (int?)null;
-            var roles = author1.Roles.Select(xid => ctx.Guild.Roles.First(xr => xr.Id == xid)).OrderByDescending(xrole => xrole.Position);
+            var roles = author1.Roles.OrderByDescending(xr => xr.Position);
             var role = roles.FirstOrDefault(xr => xr.Color != 0);
             color = role != null ? (int?)role.Color : null;
 
