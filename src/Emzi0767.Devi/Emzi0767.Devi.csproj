@@ -4,16 +4,11 @@
     <Description>A Discord selfbot</Description>
     <Copyright>Emzi0767 2017</Copyright>
     <AssemblyTitle>Dynamic Evaluation Implement (DEvI)</AssemblyTitle>
-    <VersionPrefix>2.0.0</VersionPrefix>
-    <TargetFrameworks>net47;netcoreapp1.1;netcoreapp2.0</TargetFrameworks>
+    <VersionPrefix>2.0.1</VersionPrefix>
+    <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
     <AssemblyName>Emzi0767.Devi</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Emzi0767.Devi</PackageId>
-    <RuntimeFrameworkVersion>1.1.1</RuntimeFrameworkVersion>
-    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <Version>2.0.1</Version>
     <Authors>Emzi0767</Authors>
     <PackageProjectUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/</PackageProjectUrl>
@@ -26,25 +21,17 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.0'">
-    <RuntimeFrameworkVersion>2.0.0-preview2-002066-00</RuntimeFrameworkVersion>
+    <!-- <RuntimeFrameworkVersion>2.0.0-beta-001836-00</RuntimeFrameworkVersion> -->
+    <RuntimeFrameworkVersion>2.0.0-preview3-25423-02</RuntimeFrameworkVersion>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp1.1'">
     <ProjectReference Include="..\Emzi0767.AppDomainPolyfill\Emzi0767.AppDomainPolyfill.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="2.1.5-rc" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.1.5-rc" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-beta1-61621-04" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-beta1-61621-04" />
-  </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)'=='net47'">
-    <PackageReference Include="DSharpPlus" Version="2.1.5-rc" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.1.5-rc" />
-    <PackageReference Include="DSharpPlus.WebSocket.WebSocketSharp" Version="2.1.5-rc" />
+    <PackageReference Include="DSharpPlus" Version="2.2.2" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.2.2" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-beta1-61621-04" />
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-beta1-61621-04" />
