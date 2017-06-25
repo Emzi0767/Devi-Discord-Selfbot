@@ -83,16 +83,12 @@ namespace Emzi0767.Devi
                 };
             }
 
-            var discord = new DiscordClient(new DiscordConfig() { LogLevel = LogLevel.Debug, Token = Settings.Token, TokenType = TokenType.User });
+            var discord = new DiscordClient(new DiscordConfig() { LogLevel = LogLevel.Debug, Token = Settings.Token, TokenType = TokenType.User, MessageCacheSize = Settings.CacheSize });
             DeviClient = discord;
-
-#if NET47
-            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
-                DeviClient.SetSocketImplementation<WebSocketSharpClient>();
-#endif
 
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration { StringPrefix = Settings.Prefix, SelfBot = true, EnableDefaultHelp = false, EnableMentionPrefix = false });
             DeviCommands = commands;
+            DeviCommands.CommandErrored += DeviCommands_CommandErrored;
             DeviCommands.RegisterCommands<DeviCommandModule>();
 
             DeviMessageTracker = new List<DiscordMessage>();
@@ -108,8 +104,17 @@ namespace Emzi0767.Devi
             await Task.Delay(-1);
         }
 
+        private static Task DeviCommands_CommandErrored(CommandErrorEventArgs ea)
+        {
+            ea.Context.Client.DebugLogger.LogMessage(LogLevel.Error, "DEvI CMD", string.Concat("'", ea.Command.QualifiedName, "' threw ", ea.Exception.GetType().ToString(), ": ", ea.Exception.Message), DateTime.Now);
+
+            return Task.Delay(0);
+        }
+
         private static Task Discord_GuildAvailable(GuildCreateEventArgs ea)
         {
+            ea.Client.DebugLogger.LogMessage(LogLevel.Info, "DEvI", string.Concat("Guild available: ", ea.Guild.Name), DateTime.Now);
+
             var arg = ea.Guild;
             var emoji = arg.Emojis;
             if (emoji == null) return Task.CompletedTask;
@@ -145,9 +150,45 @@ namespace Emzi0767.Devi
                 await msg.DeleteAsync();
         }
 
-        private static void Discord_Log(object sender, DebugLogMessageEventArgs arg)
+        private static void Discord_Log(object sender, DebugLogMessageEventArgs e)
         {
-            Console.WriteLine(string.Concat("[", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss zzz"), "] [", arg.Level, "] ", arg.Message));
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("[{0:yyyy-MM-dd HH:mm:ss zzz}] ", e.Timestamp.ToLocalTime());
+
+            var tag = e.Application;
+            if (tag.Length > 12)
+                tag = tag.Substring(0, 12);
+            if (tag.Length < 12)
+                tag = tag.PadLeft(12, ' ');
+            Console.Write("[{0}] ", tag);
+
+            switch (e.Level)
+            {
+                case LogLevel.Critical:
+                case LogLevel.Error:
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    break;
+
+                case LogLevel.Warning:
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    break;
+
+                case LogLevel.Info:
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    break;
+
+                case LogLevel.Debug:
+                    Console.ForegroundColor = ConsoleColor.Magenta;
+                    break;
+
+                default:
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    break;
+            }
+            Console.Write("[{0}] ", e.Level.ToString().PadLeft(8));
+
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(e.Message);
         }
 
         private static Task Discord_Ready(ReadyEventArgs ea)

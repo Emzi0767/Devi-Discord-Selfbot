@@ -38,7 +38,7 @@ namespace Emzi0767.Devi
 
             var rnd = new Random();
             var num = rnd.Next(min, max);
-            
+
             await this.SendEmbedAsync(ctx, BuildEmbed("Random Number", num.ToString("#,##0"), 0));
         }
 
@@ -110,20 +110,19 @@ namespace Emzi0767.Devi
         }
 
         [Command("quote")]
-        public async Task Quote(CommandContext ctx, DiscordMessage msq, params string[] message_contents)
+        public async Task Quote(CommandContext ctx, ulong msqid, [RemainingText] string message = null)
         {
-            var message = string.Join(" ", message_contents);
             var msg = ctx.Message;
             var chn = msg.Channel;
-            var mss = await chn.GetMessagesAsync(limit: 100);
+            var mss = await chn.GetMessagesAsync(around: msqid, limit: 3);
+            var msq = mss.FirstOrDefault(xm => xm.Id == msqid);
 
             await this.QuoteAsync(ctx, msq, message);
         }
 
         [Command("quoteuser")]
-        public async Task Quote(CommandContext ctx, DiscordMember user, params string[] message_contents)
+        public async Task Quote(CommandContext ctx, DiscordMember user, [RemainingText] string message = null)
         {
-            var message = string.Join(" ", message_contents);
             var msg = ctx.Message;
             var chn = msg.Channel;
             var mss = await chn.GetMessagesAsync(limit: 100);

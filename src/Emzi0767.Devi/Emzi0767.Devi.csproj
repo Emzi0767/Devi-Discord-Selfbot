@@ -22,14 +22,18 @@
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.0'">
     <!-- <RuntimeFrameworkVersion>2.0.0-beta-001836-00</RuntimeFrameworkVersion> -->
-    <RuntimeFrameworkVersion>2.0.0-preview3-25423-02</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion>2.0.0-preview3-25424-01</RuntimeFrameworkVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="2.2.2" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.2.2" />
+    <PackageReference Include="DSharpPlus" Version="2.3.0-beta-00091" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.3.0-beta-00091" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-beta1-61621-04" />
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-beta1-61621-04" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'!='netcoreapp2.0'">
+    <ProjectReference Include="..\Emzi0767.AppDomainPolyfill\Emzi0767.AppDomainPolyfill.csproj" />
   </ItemGroup>
 
 </Project>
