@@ -9,5 +9,8 @@ namespace Emzi0767.Devi
 
         [JsonProperty("prefix")]
         public string Prefix { get; set; }
+
+        [JsonProperty("cache_size")]
+        public int CacheSize { get; set; }
     }
 }

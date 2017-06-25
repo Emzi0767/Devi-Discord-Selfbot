@@ -1,14 +1,14 @@
-﻿using Discord.WebSocket;
+﻿using DSharpPlus;
 
 namespace Emzi0767.Devi
 {
     public class DeviVariables
     {
-        public SocketUserMessage Message { get; set; }
-        public SocketTextChannel Channel { get { return this.Message.Channel as SocketTextChannel; } }
-        public SocketGuild Guild { get { return this.Channel.Guild; } }
-        public SocketUser User { get { return this.Message.Author; } }
+        public DiscordMessage Message { get; set; }
+        public DiscordChannel Channel { get { return this.Message.Channel; } }
+        public DiscordGuild Guild { get { return this.Channel.Guild; } }
+        public DiscordUser User { get { return this.Message.Author; } }
 
-        public DiscordSocketClient Client { get; set; }
+        public DiscordClient Client { get; set; }
     }
 }
