@@ -71,7 +71,7 @@ namespace Emzi0767.Devi
                     var rv = result.ReturnValue;
                     var psr = ti.GetProperties();
                     var ps = psr.Take(25);
-                    var efs = ps.Select(xp => new DiscordEmbedField { Name = string.Concat(xp.Name, " (", xp.DeclaringType.ToString(), ")"), Value = this.ObjectToString(rv), Inline = true });
+                    var efs = ps.Select(xp => new DiscordEmbedField { Name = string.Concat(xp.Name, " (", xp.DeclaringType.ToString(), ")"), Value = this.ObjectToString(xp.GetValue(rv)), Inline = true });
                     embed.Fields.AddRange(efs);
 
                     if (psr.Length > 25)
