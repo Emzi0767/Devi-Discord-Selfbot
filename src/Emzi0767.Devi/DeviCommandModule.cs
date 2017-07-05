@@ -337,6 +337,9 @@ namespace Emzi0767.Devi
 
         public string ObjectToString(object o)
         {
+            if (o == null)
+                return "*null*";
+
             switch (o)
             {
                 case DateTime dt:
