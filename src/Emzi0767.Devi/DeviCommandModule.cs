@@ -43,47 +43,58 @@ namespace Emzi0767.Devi
         }
 
         [Command("eval"), Description("Evaluates C# code.")]
-        public async Task Eval(CommandContext ctx, params string[] code_input)
+        public async Task Eval(CommandContext ctx, [RemainingText] string code)
         {
-            var msg = ctx.Message;
-            var code = string.Join(" ", code_input);
+            var result = await EvaluateAsync(ctx, code);
 
-            var cs1 = code.IndexOf("```") + 3;
-            cs1 = code.IndexOf('\n', cs1) + 1;
-            var cs2 = code.LastIndexOf("```");
+            if (result != null && result.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
+                await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Result", result.ReturnValue.ToString(), 2));
+            else
+                await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Successful", "No result was returned.", 2));
+        }
 
-            if (cs1 == -1 || cs2 == -1)
-                throw new ArgumentException("You need to wrap the code into a code block.");
+        [Command("inspect"), Description("Evaluates a snippet of code, and inspects the result.")]
+        public async Task Inspect(CommandContext ctx, [RemainingText] string code)
+        {
+            var result = await EvaluateAsync(ctx, code);
 
-            var cs = code.Substring(cs1, cs2 - cs1);
-
-            var nmsg = await this.SendEmbedAsync(ctx, BuildEmbed("Evaluating...", null, 0));
-
-            try
+            if (result != null && result.ReturnValue != null)
             {
-                var globals = new DeviVariables()
+                //await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Result", result.ReturnValue.ToString(), 2));
+
+                var t = result.ReturnValue.GetType();
+                var ti = t.GetTypeInfo();
+                var embed = BuildEmbed("Return value inspection", string.Concat("Return type:", t.ToString()), 2);
+
+                if (ti.IsPrimitive)
+                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = result.ReturnValue.ToString(), Inline = false });
+                else if (t == typeof(DateTime))
+                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = ((DateTime)result.ReturnValue).ToString("yyyy-MM-dd HH:mm:ss zzz"), Inline = false });
+                else if (t == typeof(DateTimeOffset))
+                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = ((DateTimeOffset)result.ReturnValue).ToString("yyyy-MM-dd HH:mm:ss zzz"), Inline = false });
+                else if (t == typeof(TimeSpan))
+                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = ((TimeSpan)result.ReturnValue).ToString("c"), Inline = false });
+                else if (ti.IsEnum)
                 {
-                    Message = ctx.Message,
-                    Client = ctx.Client
-                };
-
-                var sopts = ScriptOptions.Default;
-                sopts = sopts.WithImports("System", "System.Collections.Generic", "System.Linq", "System.Text", "System.Threading.Tasks", "DSharpPlus", "DSharpPlus.CommandsNext");
-                sopts = sopts.WithReferences(AppDomain.CurrentDomain.GetAssemblies().Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location)));
-
-                var script = CSharpScript.Create(cs, sopts, typeof(DeviVariables));
-                script.Compile();
-                var result = await script.RunAsync(globals);
-
-                if (result != null && result.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
-                    await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Result", result.ReturnValue.ToString(), 2), nmsg);
+                    var rv = (Enum)result.ReturnValue;
+                    var flags = Enum.GetValues(t)
+                        .OfType<Enum>()
+                        .Where(xev => rv.HasFlag(xev))
+                        .Select(xev => xev.ToString());
+                    embed.Fields.Add(new DiscordEmbedField { Name = "Flags", Value = string.Concat(", ", flags), Inline = false });
+                }
                 else
-                    await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Successful", "No result was returned.", 2), nmsg);
+                {
+                    var rv = result.ReturnValue;
+                    var ps = ti.GetProperties().Take(25);
+                    var efs = ps.Select(xp => new DiscordEmbedField { Name = string.Concat(xp.Name, " (", xp.DeclaringType.ToString(), ")"), Value = xp.GetValue(rv).ToString(), Inline = true });
+                    embed.Fields.AddRange(efs);
+                }
+
+                await this.SendEmbedAsync(ctx, embed);
             }
-            catch (Exception ex)
-            {
-                await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Failure", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1), nmsg);
-            }
+            else
+                await this.SendEmbedAsync(ctx, BuildEmbed("Inspection failed", "No result was returned.", 1));
         }
 
         [Command("nitro")]
@@ -255,7 +266,7 @@ namespace Emzi0767.Devi
             var msg = await this.SendTextAsync(ctx, "Performing pings...");
             sw.Stop();
 
-            await this.SendTextAsync(ctx, string.Concat("**Socket latency**: ", client.Ping.ToString("#,##0"), "ms\n**API latency**: ", sw.ElapsedMilliseconds.ToString("#,##0"), "ms"), msg);
+            await this.SendTextAsync(ctx, string.Concat("**Socket latency**: ", client.Ping.ToString("#,##0"), "ms\n**API latency**: ", sw.ElapsedMilliseconds.ToString("#,##0"), "ms"));
         }
 
         [Command("settings")]
@@ -298,6 +309,45 @@ namespace Emzi0767.Devi
             await this.SendTextAsync(ctx, "All settings saved");
         }
 
+        public async Task<ScriptState<object>> EvaluateAsync(CommandContext ctx, string code)
+        {
+            var cs1 = code.IndexOf("```") + 3;
+            cs1 = code.IndexOf('\n', cs1) + 1;
+            var cs2 = code.LastIndexOf("```");
+
+            if (cs1 == -1 || cs2 == -1)
+                throw new ArgumentException("You need to wrap the code into a code block.");
+
+            var cs = code.Substring(cs1, cs2 - cs1);
+
+            var nmsg = await this.SendEmbedAsync(ctx, BuildEmbed("Evaluating...", null, 0));
+
+            try
+            {
+                var globals = new DeviVariables()
+                {
+                    Message = ctx.Message,
+                    Client = ctx.Client
+                };
+
+                var sopts = ScriptOptions.Default;
+                sopts = sopts.WithImports("System", "System.Collections.Generic", "System.Linq", "System.Text", "System.Threading.Tasks", "DSharpPlus", "DSharpPlus.CommandsNext");
+                sopts = sopts.WithReferences(AppDomain.CurrentDomain.GetAssemblies().Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location)));
+
+                var script = CSharpScript.Create(cs, sopts, typeof(DeviVariables));
+                script.Compile();
+                var result = await script.RunAsync(globals);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Failure", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1));
+            }
+
+            return null;
+        }
+
         private async Task QuoteAsync(CommandContext ctx, DiscordMessage msg, string qmsg)
         {
             var txt = qmsg ?? this.EmojiMap.Mapping["speech_balloon"];
@@ -314,14 +364,9 @@ namespace Emzi0767.Devi
             await this.SendEmbedAsync(ctx, embed, txt);
         }
 
-        private Task<DiscordMessage> SendTextAsync(CommandContext ctx, string content)
+        private async Task<DiscordMessage> SendTextAsync(CommandContext ctx, string content)
         {
-            return this.SendTextAsync(ctx, content, ctx.Message);
-        }
-
-        private async Task<DiscordMessage> SendTextAsync(CommandContext ctx, string content, DiscordMessage nmsg)
-        {
-            var msg = nmsg;
+            var msg = ctx.Message;
             var mod = msg.Author.Id == ctx.Client.CurrentUser.Id;
 
             if (mod)
@@ -334,22 +379,12 @@ namespace Emzi0767.Devi
 
         private Task<DiscordMessage> SendEmbedAsync(CommandContext ctx, DiscordEmbed embed)
         {
-            return this.SendEmbedAsync(ctx, embed, null, ctx.Message);
+            return this.SendEmbedAsync(ctx, embed, null);
         }
 
-        private Task<DiscordMessage> SendEmbedAsync(CommandContext ctx, DiscordEmbed embed, DiscordMessage nmsg)
+        private async Task<DiscordMessage> SendEmbedAsync(CommandContext ctx, DiscordEmbed embed, string content)
         {
-            return this.SendEmbedAsync(ctx, embed, null, nmsg);
-        }
-
-        private Task<DiscordMessage> SendEmbedAsync(CommandContext ctx, DiscordEmbed embed, string content)
-        {
-            return this.SendEmbedAsync(ctx, embed, content, ctx.Message);
-        }
-
-        private async Task<DiscordMessage> SendEmbedAsync(CommandContext ctx, DiscordEmbed embed, string content, DiscordMessage nmsg)
-        {
-            var msg = nmsg;
+            var msg = ctx.Message;
             var mod = msg.Author.Id == ctx.Client.CurrentUser.Id;
 
             if (mod)
@@ -367,7 +402,8 @@ namespace Emzi0767.Devi
             var embed = new DiscordEmbed()
             {
                 Title = title,
-                Description = desc
+                Description = desc,
+                Fields = new List<DiscordEmbedField>()
             };
             switch (type)
             {
