@@ -60,35 +60,22 @@ namespace Emzi0767.Devi
 
             if (result != null && result.ReturnValue != null)
             {
-                //await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Result", result.ReturnValue.ToString(), 2));
-
                 var t = result.ReturnValue.GetType();
                 var ti = t.GetTypeInfo();
                 var embed = BuildEmbed("Return value inspection", string.Concat("Return type:", t.ToString()), 2);
-
-                if (ti.IsPrimitive)
-                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = result.ReturnValue.ToString(), Inline = false });
-                else if (t == typeof(DateTime))
-                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = ((DateTime)result.ReturnValue).ToString("yyyy-MM-dd HH:mm:ss zzz"), Inline = false });
-                else if (t == typeof(DateTimeOffset))
-                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = ((DateTimeOffset)result.ReturnValue).ToString("yyyy-MM-dd HH:mm:ss zzz"), Inline = false });
-                else if (t == typeof(TimeSpan))
-                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = ((TimeSpan)result.ReturnValue).ToString("c"), Inline = false });
-                else if (ti.IsEnum)
-                {
-                    var rv = (Enum)result.ReturnValue;
-                    var flags = Enum.GetValues(t)
-                        .OfType<Enum>()
-                        .Where(xev => rv.HasFlag(xev))
-                        .Select(xev => xev.ToString());
-                    embed.Fields.Add(new DiscordEmbedField { Name = "Flags", Value = string.Concat(", ", flags), Inline = false });
-                }
+                
+                if (ti.IsPrimitive || ti.IsEnum || t == typeof(DateTime) || t == typeof(DateTimeOffset) || t == typeof(TimeSpan))
+                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = this.ObjectToString(result.ReturnValue), Inline = false });
                 else
                 {
                     var rv = result.ReturnValue;
-                    var ps = ti.GetProperties().Take(25);
-                    var efs = ps.Select(xp => new DiscordEmbedField { Name = string.Concat(xp.Name, " (", xp.DeclaringType.ToString(), ")"), Value = xp.GetValue(rv).ToString(), Inline = true });
+                    var psr = ti.GetProperties();
+                    var ps = psr.Take(25);
+                    var efs = ps.Select(xp => new DiscordEmbedField { Name = string.Concat(xp.Name, " (", xp.DeclaringType.ToString(), ")"), Value = this.ObjectToString(rv), Inline = true });
                     embed.Fields.AddRange(efs);
+
+                    if (psr.Length > 25)
+                        embed.Description = string.Concat(embed.Description, "\n\n**Warning**: Property count exceeds 25. Not all properties are displayed.");
                 }
 
                 await this.SendEmbedAsync(ctx, embed);
@@ -346,6 +333,31 @@ namespace Emzi0767.Devi
             }
 
             return null;
+        }
+
+        public string ObjectToString(object o)
+        {
+            switch (o)
+            {
+                case DateTime dt:
+                    return dt.ToString("yyyy-MM-dd HH:mm:ss zzz");
+                
+                case DateTimeOffset dto:
+                    return dto.ToString("yyyy-MM-dd HH:mm:ss zzz");
+                
+                case TimeSpan ts:
+                    return ts.ToString("c");
+                
+                case Enum e:
+                    var flags = Enum.GetValues(e.GetType())
+                        .OfType<Enum>()
+                        .Where(xev => e.HasFlag(xev))
+                        .Select(xev => xev.ToString());
+                    return string.Concat(", ", flags);
+                
+                default:
+                    return o.ToString();
+            }
         }
 
         private async Task QuoteAsync(CommandContext ctx, DiscordMessage msg, string qmsg)
