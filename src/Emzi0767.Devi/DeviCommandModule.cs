@@ -45,43 +45,57 @@ namespace Emzi0767.Devi
         [Command("eval"), Description("Evaluates C# code.")]
         public async Task Eval(CommandContext ctx, [RemainingText] string code)
         {
-            var result = await EvaluateAsync(ctx, code);
+            try
+            {
+                var result = await EvaluateAsync(ctx, code);
 
-            if (result != null && result.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
-                await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Result", result.ReturnValue.ToString(), 2));
-            else
-                await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Successful", "No result was returned.", 2));
+                if (result != null && result.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
+                    await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Result", result.ReturnValue.ToString(), 2));
+                else
+                    await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Successful", "No result was returned.", 2));
+            }
+            catch (Exception ex)
+            {
+                await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Failure", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1));
+            }
         }
 
         [Command("inspect"), Description("Evaluates a snippet of code, and inspects the result.")]
         public async Task Inspect(CommandContext ctx, [RemainingText] string code)
         {
-            var result = await EvaluateAsync(ctx, code);
-
-            if (result != null && result.ReturnValue != null)
+            try
             {
-                var t = result.ReturnValue.GetType();
-                var ti = t.GetTypeInfo();
-                var embed = BuildEmbed("Return value inspection", string.Concat("Return type:", t.ToString()), 2);
-                
-                if (ti.IsPrimitive || ti.IsEnum || t == typeof(DateTime) || t == typeof(DateTimeOffset) || t == typeof(TimeSpan))
-                    embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = this.ObjectToString(result.ReturnValue), Inline = false });
-                else
+                var result = await EvaluateAsync(ctx, code);
+
+                if (result != null && result.ReturnValue != null)
                 {
-                    var rv = result.ReturnValue;
-                    var psr = ti.GetProperties();
-                    var ps = psr.Take(25);
-                    var efs = ps.Select(xp => new DiscordEmbedField { Name = string.Concat(xp.Name, " (", xp.PropertyType.ToString(), ")"), Value = this.ObjectToString(xp.GetValue(rv)), Inline = true });
-                    embed.Fields.AddRange(efs);
+                    var t = result.ReturnValue.GetType();
+                    var ti = t.GetTypeInfo();
+                    var embed = BuildEmbed("Return value inspection", string.Concat("Return type:", t.ToString()), 2);
+                    
+                    if (ti.IsPrimitive || ti.IsEnum || t == typeof(DateTime) || t == typeof(DateTimeOffset) || t == typeof(TimeSpan))
+                        embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = this.ObjectToString(result.ReturnValue), Inline = false });
+                    else
+                    {
+                        var rv = result.ReturnValue;
+                        var psr = ti.GetProperties();
+                        var ps = psr.Take(25);
+                        var efs = ps.Select(xp => new DiscordEmbedField { Name = string.Concat(xp.Name, " (", xp.PropertyType.ToString(), ")"), Value = this.ObjectToString(xp.GetValue(rv)), Inline = true });
+                        embed.Fields.AddRange(efs);
 
-                    if (psr.Length > 25)
-                        embed.Description = string.Concat(embed.Description, "\n\n**Warning**: Property count exceeds 25. Not all properties are displayed.");
+                        if (psr.Length > 25)
+                            embed.Description = string.Concat(embed.Description, "\n\n**Warning**: Property count exceeds 25. Not all properties are displayed.");
+                    }
+
+                    await this.SendEmbedAsync(ctx, embed);
                 }
-
-                await this.SendEmbedAsync(ctx, embed);
+                else
+                    await this.SendEmbedAsync(ctx, BuildEmbed("Inspection Failed", "No result was returned.", 1));
             }
-            else
-                await this.SendEmbedAsync(ctx, BuildEmbed("Inspection failed", "No result was returned.", 1));
+            catch (Exception ex)
+            {
+                await this.SendEmbedAsync(ctx, BuildEmbed("Inspection Failed", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1));
+            }
         }
 
         [Command("nitro")]
@@ -309,30 +323,21 @@ namespace Emzi0767.Devi
 
             var nmsg = await this.SendEmbedAsync(ctx, BuildEmbed("Evaluating...", null, 0));
 
-            try
+            var globals = new DeviVariables()
             {
-                var globals = new DeviVariables()
-                {
-                    Message = ctx.Message,
-                    Client = ctx.Client
-                };
+                Message = ctx.Message,
+                Client = ctx.Client
+            };
 
-                var sopts = ScriptOptions.Default;
-                sopts = sopts.WithImports("System", "System.Collections.Generic", "System.Linq", "System.Text", "System.Threading.Tasks", "DSharpPlus", "DSharpPlus.CommandsNext");
-                sopts = sopts.WithReferences(AppDomain.CurrentDomain.GetAssemblies().Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location)));
+            var sopts = ScriptOptions.Default;
+            sopts = sopts.WithImports("System", "System.Collections.Generic", "System.Linq", "System.Text", "System.Threading.Tasks", "DSharpPlus", "DSharpPlus.CommandsNext");
+            sopts = sopts.WithReferences(AppDomain.CurrentDomain.GetAssemblies().Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location)));
 
-                var script = CSharpScript.Create(cs, sopts, typeof(DeviVariables));
-                script.Compile();
-                var result = await script.RunAsync(globals);
+            var script = CSharpScript.Create(cs, sopts, typeof(DeviVariables));
+            script.Compile();
+            var result = await script.RunAsync(globals);
 
-                return result;
-            }
-            catch (Exception ex)
-            {
-                await this.SendEmbedAsync(ctx, BuildEmbed("Evaluation Failure", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1));
-            }
-
-            return null;
+            return result;
         }
 
         public string ObjectToString(object o)
