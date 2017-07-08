@@ -20,12 +20,12 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.0'">
-    <RuntimeFrameworkVersion>2.0.0-preview3-25424-01</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion>2.0.0-preview3-25507-02</RuntimeFrameworkVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="2.3.3-beta-00105" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.3.3-beta-00105" />
+    <PackageReference Include="DSharpPlus" Version="2.4.0" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.4.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-dev-61717-03" />
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-dev-61717-03" />
   </ItemGroup>
