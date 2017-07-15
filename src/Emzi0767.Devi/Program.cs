@@ -23,10 +23,11 @@ namespace Emzi0767.Devi
         #endregion
 
         #region Settings and configuration
-        internal static DeviSettingStore Settings { get; set; }
-        internal static DeviEmojiMap EmojiMap { get; set; }
-        internal static DeviDongerMap Dongers { get; set; }
-        internal static DeviGuildEmojiMap GuildEmoji { get; set; }
+        private static DeviSettingStore Settings { get; set; }
+        private static DeviEmojiMap EmojiMap { get; set; }
+        private static DeviDongerMap Dongers { get; set; }
+        private static DeviGuildEmojiMap GuildEmoji { get; set; }
+        private static DeviDatabaseClient DatabaseClient { get; set; }
         #endregion
 
         #region Tracking and temporary storage
@@ -57,6 +58,8 @@ namespace Emzi0767.Devi
                 throw new FileNotFoundException("Unable to load configuration file (devi.json)!");
             }
 
+            DatabaseClient = new DeviDatabaseClient(Settings.DatabaseSettings);
+
             if (File.Exists(emx))
             {
                 emx = File.ReadAllText(emx, new UTF8Encoding(false));
@@ -83,10 +86,18 @@ namespace Emzi0767.Devi
                 };
             }
 
-            var discord = new DiscordClient(new DiscordConfig() { LogLevel = LogLevel.Debug, Token = Settings.Token, TokenType = TokenType.User, MessageCacheSize = Settings.CacheSize });
+            var discord = new DiscordClient(new DiscordConfig() { LogLevel = LogLevel.Debug, Token = Settings.Token, TokenType = TokenType.User, MessageCacheSize = Settings.CacheSize, AutomaticGuildSync = false });
             DeviClient = discord;
 
-            var commands = discord.UseCommandsNext(new CommandsNextConfiguration { StringPrefix = Settings.Prefix, SelfBot = true, EnableDefaultHelp = false, EnableMentionPrefix = false });
+            var depb = new DependencyCollectionBuilder();
+            var deps = depb.AddInstance(Settings)
+                .AddInstance(EmojiMap)
+                .AddInstance(Dongers)
+                .AddInstance(GuildEmoji)
+                .AddInstance(DatabaseClient)
+                .Build();
+
+            var commands = discord.UseCommandsNext(new CommandsNextConfiguration { StringPrefix = Settings.Prefix, SelfBot = true, EnableDefaultHelp = false, EnableMentionPrefix = false, Dependencies = deps });
             DeviCommands = commands;
             DeviCommands.CommandErrored += DeviCommands_CommandErrored;
             DeviCommands.RegisterCommands<DeviCommandModule>();
@@ -95,9 +106,12 @@ namespace Emzi0767.Devi
 
             discord.GuildAvailable += Discord_GuildAvailable;
             discord.MessageCreated += Discord_MessageReceived;
+            discord.MessageUpdate += Discord_MessageUpdate;
+            discord.MessageDelete += Discord_MessageDelete;
             discord.Ready += Discord_Ready;
             discord.DebugLogger.LogMessageReceived += Discord_Log;
             discord.MessageReactionAdd += Discord_ReactionAdded;
+            discord.MessageReactionRemove += Discord_ReactionRemoved;
             
             await discord.ConnectAsync();
 
@@ -126,15 +140,15 @@ namespace Emzi0767.Devi
             return Task.CompletedTask;
         }
 
-        //private static async Task Discord_ReactionAdded(ulong arg1, Optional<SocketUserMessage> arg2, SocketReaction arg3)
         private static async Task Discord_ReactionAdded(MessageReactionAddEventArgs ea)
         {
             var arg1 = ea.Message.Id;
-            var arg2 = ea.Channel;
 
-            var chn = arg2;
+            var chn = ea.Channel;
             if (chn == null)
                 return;
+            
+            await DatabaseClient.LogReactionAsync(ea.Emoji, ea.User, ea.Message, ea.Channel, true);
 
             var msg = DeviMessageTracker.FirstOrDefault(xmsg => xmsg.Id == arg1);
             if (msg == null)
@@ -148,6 +162,11 @@ namespace Emzi0767.Devi
 
             if (ea.Emoji.Name == EmojiMap.Mapping["x"])
                 await msg.DeleteAsync();
+        }
+
+        private static Task Discord_ReactionRemoved(MessageReactionRemoveEventArgs ea)
+        {
+            return DatabaseClient.LogReactionAsync(ea.Emoji, ea.User, ea.Message, ea.Channel, false);
         }
 
         private static void Discord_Log(object sender, DebugLogMessageEventArgs e)
@@ -200,13 +219,18 @@ namespace Emzi0767.Devi
 
         private static async Task Discord_MessageReceived(MessageCreateEventArgs ea)
         {
-            var arg = ea.Message;
-            var msg = arg;
+            var msg = ea.Message;
             if (msg == null)
                 return;
 
             var chn = msg.Channel;
-            if (chn == null || chn.Guild == null)
+            if (chn == null)
+                return;
+
+            await DatabaseClient.LogMessageCreateAsync(msg);
+            
+            var gld = chn.Guild;
+            if (gld == null)
                 return;
             
             if (msg.Author.Id != DeviClient.CurrentUser.Id)
@@ -216,7 +240,32 @@ namespace Emzi0767.Devi
                 DeviMessageTracker.Add(msg);
 
             DeviMessageTracker.Add(msg);
-            await Task.Delay(DeviClient.Ping);
+        }
+
+        private static Task Discord_MessageDelete(MessageDeleteEventArgs ea)
+        {
+            var msg = ea.Message;
+            if (msg == null)
+                return Task.CompletedTask;
+
+            var chn = msg.Channel;
+            if (chn == null)
+                return Task.CompletedTask;
+
+            return DatabaseClient.LogMessageDeleteAsync(msg);
+        }
+
+        private static Task Discord_MessageUpdate(MessageUpdateEventArgs ea)
+        {
+            var msg = ea.Message;
+            if (msg == null)
+                return Task.CompletedTask;
+
+            var chn = msg.Channel;
+            if (chn == null)
+                return Task.CompletedTask;
+
+            return DatabaseClient.LogMessageEditAsync(msg);
         }
 
         private static void DeviTimerCallback(object _)
