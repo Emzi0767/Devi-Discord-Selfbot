@@ -20,17 +20,21 @@ namespace Emzi0767.Devi
         }
 
         [Command("ignore")]
-        public async Task IgnoreAsync(CommandContext ctx, DiscordGuild gld)
+        public async Task IgnoreAsync(CommandContext ctx, params DiscordGuild[] glds)
         {
-            await this.DatabaseClient.ConfigureGuildAsync(gld, true);
-            await this.SendEmbedAsync(ctx, BuildEmbed("Configration successful", string.Concat("Guild `", Formatter.Strip(gld.Name), "` is now exempt from logging."), 0));
+            foreach (var gld in glds)
+                await this.DatabaseClient.ConfigureGuildAsync(gld, true);
+            var gls = string.Join(", ", glds.Select(xg => string.Concat("`", Formatter.Strip(xg.Name), "`")));
+            await this.SendEmbedAsync(ctx, BuildEmbed("Configration successful", string.Concat("Following guilds are now exempt from loggin:\n", gls), 0));
         }
 
         [Command("unignore")]
-        public async Task UnignoreAsync(CommandContext ctx, DiscordGuild gld)
+        public async Task UnignoreAsync(CommandContext ctx, params DiscordGuild[] glds)
         {
-            await this.DatabaseClient.ConfigureGuildAsync(gld, false);
-            await this.SendEmbedAsync(ctx, BuildEmbed("Configration successful", string.Concat("Guild `", Formatter.Strip(gld.Name), "` is no longer exempt from logging."), 0));
+            foreach (var gld in glds)
+                await this.DatabaseClient.ConfigureGuildAsync(gld, false);
+            var gls = string.Join(", ", glds.Select(xg => string.Concat("`", Formatter.Strip(xg.Name), "`")));
+            await this.SendEmbedAsync(ctx, BuildEmbed("Configration successful", string.Concat("Following guilds are no longer exempt from loggin:\n", gls), 0));
         }
 
         #region Messaging code
