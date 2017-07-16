@@ -22,15 +22,13 @@ namespace Emzi0767.Devi
         private DeviEmojiMap EmojiMap { get; }
         private DeviDongerMap Dongers { get; }
         private DeviGuildEmojiMap GuildEmoji { get; }
-        private DeviDatabaseClient DatabaseClient { get; }
 
-        public DeviCommandModule(DeviSettingStore settings, DeviEmojiMap emoji_map, DeviDongerMap donger_map, DeviGuildEmojiMap guild_emoji, DeviDatabaseClient database)
+        public DeviCommandModule(DeviSettingStore settings, DeviEmojiMap emoji_map, DeviDongerMap donger_map, DeviGuildEmojiMap guild_emoji)
         {
             this.Settings = settings;
             this.EmojiMap = emoji_map;
             this.Dongers = donger_map;
             this.GuildEmoji = guild_emoji;
-            this.DatabaseClient = database;
         }
 
         [Command("random"), Description("Generates a random number between *min* and *max*.")]

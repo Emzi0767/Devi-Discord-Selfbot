@@ -26,3 +26,11 @@ CREATE TABLE devi_reaction_log(
     action_timestamp TIMESTAMP WITH TIME ZONE NOT NULL
 );
 ALTER SEQUENCE devi_reaction_log_id_seq OWNED BY devi_reaction_log.id;
+
+CREATE SEQUENCE devi_log_ignore_id_seq;
+CREATE TABLE devi_log_ignore(
+    id BIGINT NOT NULL DEFAULT NEXTVAL('devi_log_ignore_id_seq'),
+    guild_id BIGINT NOT NULL,    -- snowflake
+    UNIQUE(guild_id)
+);
+ALTER SEQUENCE devi_log_ignore_id_seq OWNED BY devi_log_ignore.id;

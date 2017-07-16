@@ -59,6 +59,7 @@ namespace Emzi0767.Devi
             }
 
             DatabaseClient = new DeviDatabaseClient(Settings.DatabaseSettings);
+            await DatabaseClient.PreconfigureAsync();
 
             if (File.Exists(emx))
             {
@@ -148,7 +149,8 @@ namespace Emzi0767.Devi
             if (chn == null)
                 return;
             
-            await DatabaseClient.LogReactionAsync(ea.Emoji, ea.User, ea.Message, ea.Channel, true);
+            if (ea.Channel.Guild == null || (ea.Channel.Guild != null && !DatabaseClient.Ignored.Contains(ea.Channel.Guild.Id)))
+                await DatabaseClient.LogReactionAsync(ea.Emoji, ea.User, ea.Message, ea.Channel, true);
 
             var msg = DeviMessageTracker.FirstOrDefault(xmsg => xmsg.Id == arg1);
             if (msg == null)
@@ -166,7 +168,9 @@ namespace Emzi0767.Devi
 
         private static Task Discord_ReactionRemoved(MessageReactionRemoveEventArgs ea)
         {
-            return DatabaseClient.LogReactionAsync(ea.Emoji, ea.User, ea.Message, ea.Channel, false);
+            if (ea.Channel.Guild == null || (ea.Channel.Guild != null && !DatabaseClient.Ignored.Contains(ea.Channel.Guild.Id)))
+                return DatabaseClient.LogReactionAsync(ea.Emoji, ea.User, ea.Message, ea.Channel, false);
+            return Task.CompletedTask;
         }
 
         private static void Discord_Log(object sender, DebugLogMessageEventArgs e)
@@ -226,8 +230,9 @@ namespace Emzi0767.Devi
             var chn = msg.Channel;
             if (chn == null)
                 return;
-
-            await DatabaseClient.LogMessageCreateAsync(msg);
+            
+            if (ea.Channel.Guild == null || (ea.Channel.Guild != null && !DatabaseClient.Ignored.Contains(ea.Channel.Guild.Id)))
+                await DatabaseClient.LogMessageCreateAsync(msg);
             
             var gld = chn.Guild;
             if (gld == null)
@@ -251,8 +256,10 @@ namespace Emzi0767.Devi
             var chn = msg.Channel;
             if (chn == null)
                 return Task.CompletedTask;
-
-            return DatabaseClient.LogMessageDeleteAsync(msg);
+            
+            if (ea.Channel.Guild == null || (ea.Channel.Guild != null && !DatabaseClient.Ignored.Contains(ea.Channel.Guild.Id)))
+                return DatabaseClient.LogMessageDeleteAsync(msg);
+            return Task.CompletedTask;
         }
 
         private static Task Discord_MessageUpdate(MessageUpdateEventArgs ea)
@@ -264,8 +271,10 @@ namespace Emzi0767.Devi
             var chn = msg.Channel;
             if (chn == null)
                 return Task.CompletedTask;
-
-            return DatabaseClient.LogMessageEditAsync(msg);
+            
+            if (ea.Channel.Guild == null || (ea.Channel.Guild != null && !DatabaseClient.Ignored.Contains(ea.Channel.Guild.Id)))
+                return DatabaseClient.LogMessageEditAsync(msg);
+            return Task.CompletedTask;
         }
 
         private static void DeviTimerCallback(object _)

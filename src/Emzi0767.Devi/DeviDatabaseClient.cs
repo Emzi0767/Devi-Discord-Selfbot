@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus;
@@ -12,10 +14,14 @@ namespace Emzi0767.Devi
     {
         private DeviDatabaseSettings Settings { get; }
         private string ConnectionString { get; }
+        private List<ulong> IgnoredInternal { get; }
+        public IReadOnlyList<ulong> Ignored { get; }
 
         public DeviDatabaseClient(DeviDatabaseSettings settings)
         {
             this.Settings = settings;
+            this.IgnoredInternal = new List<ulong>();
+            this.Ignored = new ReadOnlyCollection<ulong>(this.IgnoredInternal);
 
             var csb = new NpgsqlConnectionStringBuilder
             {
@@ -116,6 +122,48 @@ namespace Emzi0767.Devi
                 cmd.Prepare();
 
                 await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task ConfigureGuildAsync(DiscordGuild guild, bool ignore)
+        {
+            using (var con = new NpgsqlConnection(this.ConnectionString))
+            using (var cmd = con.CreateCommand())
+            {
+                await con.OpenAsync();
+
+                var tbl = string.Concat(this.Settings.TablePrefix, "log_ignore");
+
+                if (ignore)
+                    cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(guild_id) VALUES(@guild_id);");
+                else
+                    cmd.CommandText = string.Concat("DELETE FROM ", tbl, " WHERE guild_id=@guild_id;");
+                cmd.Parameters.AddWithValue("guild_id", NpgsqlDbType.Bigint, (long)guild.Id);
+                cmd.Prepare();
+
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task PreconfigureAsync()
+        {
+            using (var con = new NpgsqlConnection(this.ConnectionString))
+            using (var cmd = con.CreateCommand())
+            {
+                await con.OpenAsync();
+
+                var tbl = string.Concat(this.Settings.TablePrefix, "log_ignore");
+
+                cmd.CommandText = string.Concat("SELECT guild_id FROM ", tbl, ";");
+                cmd.Prepare();
+
+                using (var rdr = await cmd.ExecuteReaderAsync())
+                {
+                    while (await rdr.ReadAsync())
+                    {
+                        this.IgnoredInternal.Add((ulong)(long)rdr["guild_id"]);
+                    }
+                }
             }
         }
     }
