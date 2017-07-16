@@ -1,4 +1,14 @@
 {
   "token": "<token here>",
-  "prefix": "devi:"
+  "prefix": "devi:",
+  "cache_size": 20,
+  "database_settings":
+  {
+    "hostname": "localhost",
+    "port": 5432,
+    "database": "devi",
+    "username": "devi",
+    "password": "ived",
+    "table_prefix": "devi_"
+  }
 }

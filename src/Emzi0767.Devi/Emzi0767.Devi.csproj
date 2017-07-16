@@ -24,8 +24,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="2.5.0-beta-00136" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.5.0-beta-00136" />
+    <PackageReference Include="DSharpPlus" Version="2.5.0-beta-00137" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.5.0-beta-00137" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-dev-61717-03" />
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-dev-61717-03" />
     <PackageReference Include="Npgsql" Version="3.2.4.1" />
