@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
+using Emzi0767.Devi.Services;
 using Newtonsoft.Json;
 
 namespace Emzi0767.Devi
@@ -13,9 +14,11 @@ namespace Emzi0767.Devi
     public sealed class DeviLogManagementModule
     {
         private DeviDatabaseClient DatabaseClient { get; }
+        private DeviUtilities Utilities { get; }
 
-        public DeviLogManagementModule(DeviDatabaseClient database)
+        public DeviLogManagementModule(DeviUtilities utils, DeviDatabaseClient database)
         {
+            this.Utilities = utils;
             this.DatabaseClient = database;
         }
 
@@ -25,7 +28,7 @@ namespace Emzi0767.Devi
             foreach (var gld in glds)
                 await this.DatabaseClient.ConfigureGuildAsync(gld, true);
             var gls = string.Join(", ", glds.Select(xg => string.Concat("`", Formatter.Strip(xg.Name), "`")));
-            await this.SendEmbedAsync(ctx, BuildEmbed("Configration successful", string.Concat("Following guilds are now exempt from loggin:\n", gls), 0));
+            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Configration successful", string.Concat("Following guilds are now exempt from logging:\n", gls), 0));
         }
 
         [Command("unignore")]
@@ -34,70 +37,44 @@ namespace Emzi0767.Devi
             foreach (var gld in glds)
                 await this.DatabaseClient.ConfigureGuildAsync(gld, false);
             var gls = string.Join(", ", glds.Select(xg => string.Concat("`", Formatter.Strip(xg.Name), "`")));
-            await this.SendEmbedAsync(ctx, BuildEmbed("Configration successful", string.Concat("Following guilds are no longer exempt from loggin:\n", gls), 0));
+            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Configration successful", string.Concat("Following guilds are no longer exempt from logging:\n", gls), 0));
         }
 
-        #region Messaging code
-        private async Task<DiscordMessage> SendTextAsync(CommandContext ctx, string content)
+        [Group("query")]
+        public class LogQuery
         {
-            var msg = ctx.Message;
-            var mod = msg.Author.Id == ctx.Client.CurrentUser.Id;
+            private DeviDatabaseClient DatabaseClient { get; }
+            private DeviUtilities Utilities { get; }
 
-            if (mod)
-                await msg.EditAsync(content);
-            else
-                msg = await msg.Channel.SendMessageAsync(string.Concat(msg.Author.Mention, ": ", content));
-
-            return msg;
-        }
-
-        private Task<DiscordMessage> SendEmbedAsync(CommandContext ctx, DiscordEmbed embed)
-        {
-            return this.SendEmbedAsync(ctx, embed, null);
-        }
-
-        private async Task<DiscordMessage> SendEmbedAsync(CommandContext ctx, DiscordEmbed embed, string content)
-        {
-            var msg = ctx.Message;
-            var mod = msg.Author.Id == ctx.Client.CurrentUser.Id;
-
-            if (mod)
-                await msg.EditAsync(!string.IsNullOrWhiteSpace(content) ? content : msg.Content, embed);
-            else if (!string.IsNullOrWhiteSpace(content))
-                msg = await msg.Channel.SendMessageAsync(string.Concat(msg.Author.Mention, ": ", content), false, embed);
-            else
-                msg = await msg.Channel.SendMessageAsync(msg.Author.Mention, false, embed);
-
-            return msg;
-        }
-
-        private static DiscordEmbed BuildEmbed(string title, string desc, int type)
-        {
-            var embed = new DiscordEmbed()
+            public LogQuery(DeviUtilities utils, DeviDatabaseClient database)
             {
-                Title = title,
-                Description = desc,
-                Fields = new List<DiscordEmbedField>()
-            };
-            switch (type)
-            {
-                default:
-                case 0:
-                    embed.Color = 0x007FFF;
-                    break;
-
-                case 1:
-                    embed.Color = 0xFF0000;
-                    break;
-
-                case 2:
-                    embed.Color = 0x7FFF00;
-                    break;
+                this.Utilities = utils;
+                this.DatabaseClient = database;
             }
-            if (type == 1)
-                embed.Thumbnail = new DiscordEmbedThumbnail { Url = "http://i.imgur.com/F9HGvxs.jpg" };
-            return embed;
+
+            [Command("edits")]
+            public async Task EditsForAsync(CommandContext ctx, ulong id)
+            {
+                var mss = await ctx.Channel.GetMessagesAsync(around: id, limit: 3);
+                var msq = mss.FirstOrDefault(xm => xm.Id == id);
+
+                if (msq == null)
+                {
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Message with specified ID was not found in this channel. Perhaps try deleted messages?", 1));
+                    return;
+                }
+
+                var edits = await this.DatabaseClient.GetEditsAsync(msq);
+                if (edits == null || edits.Count() <= 1)
+                {
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "This message does not have any edits registered.", 1));
+                    return;
+                }
+
+                var editstr = string.Join(", ", edits.Select(xdto => string.Concat("`", xdto.ToString("yyyy-MM-dd HH:mm:ss.fff zzz"), "`")));
+
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Available edits", editstr, 0));
+            }
         }
-        #endregion
     }
 }

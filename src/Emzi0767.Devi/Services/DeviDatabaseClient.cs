@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Emzi0767.Devi
+namespace Emzi0767.Devi.Services
 {
     public class DeviDatabaseClient
     {
@@ -51,9 +51,9 @@ namespace Emzi0767.Devi
                 cmd.Parameters.AddWithValue("author_id", NpgsqlDbType.Bigint, (long)msg.Author.Id);
                 cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
                 cmd.Parameters.AddWithValue("created", NpgsqlDbType.TimestampTZ, msg.CreationDate);
-                cmd.Parameters.AddWithValue("edits", NpgsqlDbType.Text | NpgsqlDbType.Array, new string[] {});
-                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text | NpgsqlDbType.Array, new[] { msg.Content });
-                cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb | NpgsqlDbType.Array, JsonConvert.SerializeObject(msg.Embeds));
+                cmd.Parameters.AddWithValue("edits", NpgsqlDbType.TimestampTZ | NpgsqlDbType.Array, new DateTimeOffset[] {});
+                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text | NpgsqlDbType.Array, new[] { msg.Content ?? "" });
+                cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb | NpgsqlDbType.Array, new[] { JsonConvert.SerializeObject(msg.Embeds) });
                 cmd.Parameters.AddWithValue("attachment_urls", NpgsqlDbType.Text | NpgsqlDbType.Array, msg.Attachments.Select(xa => xa.Url).ToArray());
                 cmd.Parameters.AddWithValue("deleted", NpgsqlDbType.Boolean, false);
                 cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, false);
@@ -72,9 +72,10 @@ namespace Emzi0767.Devi
 
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
-                cmd.CommandText = string.Concat("UPDATE ", tbl, " SET deleted=1 WHERE message_id=@message_id AND channel_id=@channel_id");
+                cmd.CommandText = string.Concat("UPDATE ", tbl, " SET deleted=@deleted WHERE message_id=@message_id AND channel_id=@channel_id;");
                 cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
                 cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
+                cmd.Parameters.AddWithValue("deleted", NpgsqlDbType.Boolean, true);
                 cmd.Prepare();
 
                 await cmd.ExecuteNonQueryAsync();
@@ -94,12 +95,39 @@ namespace Emzi0767.Devi
                 cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, true);
                 cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
                 cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                cmd.Parameters.AddWithValue("contents", msg.Content);
+                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text, msg.Content ?? "");
                 cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb, JsonConvert.SerializeObject(msg.Embeds));
                 cmd.Parameters.AddWithValue("edit", NpgsqlDbType.TimestampTZ, msg.EditedTimestamp);
                 cmd.Prepare();
 
                 await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<IEnumerable<DateTimeOffset>> GetEditsAsync(DiscordMessage msg)
+        {
+            using (var con = new NpgsqlConnection(this.ConnectionString))
+            using (var cmd = con.CreateCommand())
+            {
+                await con.OpenAsync();
+
+                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+
+                cmd.CommandText = string.Concat("SELECT edits, created FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited=@edited LIMIT 1;");
+                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
+                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
+                cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, true);
+                cmd.Prepare();
+
+                using (var rdr = await cmd.ExecuteReaderAsync())
+                {
+                    while (await rdr.ReadAsync())
+                    {
+                        var edits = new List<DateTime>((DateTime[])rdr["edits"]);
+                        edits.Insert(0, (DateTime)rdr["created"]);
+                    }
+                    return null;
+                }
             }
         }
 
@@ -135,7 +163,7 @@ namespace Emzi0767.Devi
                 var tbl = string.Concat(this.Settings.TablePrefix, "log_ignore");
 
                 if (ignore)
-                    cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(guild_id) VALUES(@guild_id);");
+                    cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(guild_id) VALUES(@guild_id) ON CONFLICT(guild_id) DO NOTHING;");
                 else
                     cmd.CommandText = string.Concat("DELETE FROM ", tbl, " WHERE guild_id=@guild_id;");
                 cmd.Parameters.AddWithValue("guild_id", NpgsqlDbType.Bigint, (long)guild.Id);

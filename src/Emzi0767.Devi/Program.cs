@@ -28,6 +28,7 @@ namespace Emzi0767.Devi
         private static DeviDongerMap Dongers { get; set; }
         private static DeviGuildEmojiMap GuildEmoji { get; set; }
         private static DeviDatabaseClient DatabaseClient { get; set; }
+        private static DeviUtilities Utilities { get; set; }
         #endregion
 
         #region Tracking and temporary storage
@@ -87,7 +88,16 @@ namespace Emzi0767.Devi
                 };
             }
 
-            var discord = new DiscordClient(new DiscordConfig() { LogLevel = LogLevel.Debug, Token = Settings.Token, TokenType = TokenType.User, MessageCacheSize = Settings.CacheSize, AutomaticGuildSync = false });
+            Utilities = new DeviUtilities();
+
+            var discord = new DiscordClient(new DiscordConfig() 
+            { 
+                LogLevel = LogLevel.Debug, 
+                Token = Settings.Token, 
+                TokenType = TokenType.User, 
+                MessageCacheSize = Settings.CacheSize, 
+                AutomaticGuildSync = false 
+            });
             DeviClient = discord;
 
             var depb = new DependencyCollectionBuilder();
@@ -96,12 +106,21 @@ namespace Emzi0767.Devi
                 .AddInstance(Dongers)
                 .AddInstance(GuildEmoji)
                 .AddInstance(DatabaseClient)
+                .AddInstance(Utilities)
                 .Build();
 
-            var commands = discord.UseCommandsNext(new CommandsNextConfiguration { StringPrefix = Settings.Prefix, SelfBot = true, EnableDefaultHelp = false, EnableMentionPrefix = false, Dependencies = deps });
+            var commands = discord.UseCommandsNext(new CommandsNextConfiguration 
+            { 
+                StringPrefix = Settings.Prefix, 
+                SelfBot = true, 
+                EnableDefaultHelp = false, 
+                EnableMentionPrefix = false,
+                Dependencies = deps 
+            });
             DeviCommands = commands;
             DeviCommands.CommandErrored += DeviCommands_CommandErrored;
             DeviCommands.RegisterCommands<DeviCommandModule>();
+            DeviCommands.RegisterCommands<DeviLogManagementModule>();
 
             DeviMessageTracker = new List<DiscordMessage>();
 
@@ -113,6 +132,7 @@ namespace Emzi0767.Devi
             discord.DebugLogger.LogMessageReceived += Discord_Log;
             discord.MessageReactionAdd += Discord_ReactionAdded;
             discord.MessageReactionRemove += Discord_ReactionRemoved;
+            discord.ClientError += Discord_ClientError;
             
             await discord.ConnectAsync();
 
@@ -122,6 +142,13 @@ namespace Emzi0767.Devi
         private static Task DeviCommands_CommandErrored(CommandErrorEventArgs ea)
         {
             ea.Context.Client.DebugLogger.LogMessage(LogLevel.Error, "DEvI CMD", string.Concat("'", ea.Command.QualifiedName, "' threw ", ea.Exception.GetType().ToString(), ": ", ea.Exception.Message), DateTime.Now);
+
+            return Task.Delay(0);
+        }
+
+        private static Task Discord_ClientError(ClientErrorEventArgs ea)
+        {
+            ea.Client.DebugLogger.LogMessage(LogLevel.Error, "DEvI DSP", string.Concat(ea.Exception.GetType(), ": ", ea.Exception.Message), DateTime.Now);
 
             return Task.Delay(0);
         }
@@ -294,40 +321,5 @@ namespace Emzi0767.Devi
             l = Path.Combine(l, "devi.json");
             File.WriteAllText(l, json, new UTF8Encoding(false));
         }
-
-        #region T/E
-        private static async Task<DiscordMessage> SendTextAsync(string content, DiscordMessage nmsg)
-        {
-            var msg = nmsg;
-            var mod = msg.Author.Id == DeviClient.CurrentUser.Id;
-
-            if (mod)
-                await msg.EditAsync(content);
-            else
-                msg = await msg.Channel.SendMessageAsync(string.Concat(msg.Author.Mention, ": ", content));
-
-            return msg;
-        }
-
-        private static Task<DiscordMessage> SendEmbedAsync(DiscordEmbed embed, DiscordMessage nmsg)
-        {
-            return SendEmbedAsync(embed, null, nmsg);
-        }
-
-        private static async Task<DiscordMessage> SendEmbedAsync(DiscordEmbed embed, string content, DiscordMessage nmsg)
-        {
-            var msg = nmsg;
-            var mod = msg.Author.Id == DeviClient.CurrentUser.Id;
-
-            if (mod)
-                await msg.EditAsync(!string.IsNullOrWhiteSpace(content) ? content : msg.Content, embed);
-            else if (!string.IsNullOrWhiteSpace(content))
-                msg = await msg.Channel.SendMessageAsync(string.Concat(msg.Author.Mention, ": ", content), false, embed);
-            else
-                msg = await msg.Channel.SendMessageAsync(msg.Author.Mention, false, embed);
-
-            return msg;
-        }
-        #endregion
     }
 }
