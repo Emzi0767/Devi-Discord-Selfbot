@@ -71,9 +71,58 @@ namespace Emzi0767.Devi
                     return;
                 }
 
-                var editstr = string.Join(", ", edits.Select(xdto => string.Concat("`", xdto.ToString("yyyy-MM-dd HH:mm:ss.fff zzz"), "`")));
+                var editstr = string.Join("\n", edits.Select(xdto => xdto.ToString("yyyy-MM-dd HH:mm:ss.fff zzz")));
 
                 await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Available edits", editstr, 0));
+            }
+
+            [Command("edit")]
+            public async Task ViewEditAsync(CommandContext ctx, ulong id, DateTimeOffset which)
+            {
+                var mss = await ctx.Channel.GetMessagesAsync(around: id, limit: 3);
+                var msq = mss.FirstOrDefault(xm => xm.Id == id);
+
+                if (msq == null)
+                {
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Message with specified ID was not found in this channel. Perhaps try deleted messages?", 1));
+                    return;
+                }
+
+                var edits = await this.DatabaseClient.GetEditsAsync(msq);
+                if (edits == null || edits.Count() <= 1)
+                {
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "This message does not have any edits registered.", 1));
+                    return;
+                }
+
+                var editstr = await this.DatabaseClient.GetEditAsync(msq, which);
+
+                if (editstr != null)
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Edit from ", which.ToString("yyyy-MM-dd HH:mm:ss.fff zzz")), editstr, 0));
+                else
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Specfied edit was not found.", 1));
+            }
+
+            [Command("deletes")]
+            public async Task GetDeletesAsync(CommandContext ctx, int limit = 10, DiscordChannel chn = null)
+            {
+                chn = chn ?? ctx.Channel;
+                var deletes = await this.DatabaseClient.GetDeletesAsync(chn, limit);
+                var str = string.Join("\n\n", deletes.Select(xtpl => string.Concat(xtpl.Item1, " by <@!", xtpl.Item2, ">")));
+
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Messages deleted in ", chn.Name), str, 0));
+            }
+
+            [Command("deleted")]
+            public async Task GetDeletedAsync(CommandContext ctx, ulong id, DiscordChannel chn = null)
+            {
+                chn = chn ?? ctx.Channel;
+                var delete = await this.DatabaseClient.GetDeleteAsync(chn, id);
+
+                if (delete != null)
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Messages ", id), delete, 0));
+                else
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Specfied messages was not found or was not deleted.", 1));
             }
         }
     }

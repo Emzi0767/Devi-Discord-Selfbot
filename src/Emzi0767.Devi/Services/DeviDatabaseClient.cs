@@ -97,14 +97,14 @@ namespace Emzi0767.Devi.Services
                 cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
                 cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text, msg.Content ?? "");
                 cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb, JsonConvert.SerializeObject(msg.Embeds));
-                cmd.Parameters.AddWithValue("edit", NpgsqlDbType.TimestampTZ, msg.EditedTimestamp);
+                cmd.Parameters.AddWithValue("edit", NpgsqlDbType.TimestampTZ, msg.IsEdited ? msg.EditedTimestamp : DateTimeOffset.Now);
                 cmd.Prepare();
 
                 await cmd.ExecuteNonQueryAsync();
             }
         }
 
-        public async Task<IEnumerable<DateTimeOffset>> GetEditsAsync(DiscordMessage msg)
+        public async Task<IEnumerable<DateTime>> GetEditsAsync(DiscordMessage msg)
         {
             using (var con = new NpgsqlConnection(this.ConnectionString))
             using (var cmd = con.CreateCommand())
@@ -113,10 +113,9 @@ namespace Emzi0767.Devi.Services
 
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
-                cmd.CommandText = string.Concat("SELECT edits, created FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited=@edited LIMIT 1;");
+                cmd.CommandText = string.Concat("SELECT edits, created FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE LIMIT 1;");
                 cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
                 cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, true);
                 cmd.Prepare();
 
                 using (var rdr = await cmd.ExecuteReaderAsync())
@@ -125,9 +124,80 @@ namespace Emzi0767.Devi.Services
                     {
                         var edits = new List<DateTime>((DateTime[])rdr["edits"]);
                         edits.Insert(0, (DateTime)rdr["created"]);
+                        return edits;
                     }
                     return null;
                 }
+            }
+        }
+
+        public async Task<string> GetEditAsync(DiscordMessage msg, DateTimeOffset which)
+        {
+            using (var con = new NpgsqlConnection(this.ConnectionString))
+            using (var cmd = con.CreateCommand())
+            {
+                await con.OpenAsync();
+
+                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+
+                if (msg.CreationDate.ToLocalTime() == which)
+                    cmd.CommandText = string.Concat("SELECT contents[1] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE AND created=@which LIMIT 1;");
+                else
+                    cmd.CommandText = string.Concat("SELECT contents[array_position(edits, @which) + 1] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE AND array_position(edits, @which) IS NOT NULL LIMIT 1;");
+                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
+                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
+                cmd.Parameters.AddWithValue("which", NpgsqlDbType.TimestampTZ, which);
+                cmd.Prepare();
+
+                var res = await cmd.ExecuteScalarAsync();
+                if (!(res is DBNull))
+                    return (string)res;
+                return null;
+            }
+        }
+
+        public async Task<IEnumerable<Tuple<ulong, ulong>>> GetDeletesAsync(DiscordChannel chn, int limit)
+        {
+            using (var con = new NpgsqlConnection(this.ConnectionString))
+            using (var cmd = con.CreateCommand())
+            {
+                await con.OpenAsync();
+
+                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+
+                cmd.CommandText = string.Concat("SELECT message_id, author_id, contents[array_length(contents, 1)] FROM ", tbl, " WHERE channel_id=@channel_id AND deleted IS TRUE ORDER BY message_id DESC LIMIT @limit;");
+                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)chn.Id);
+                cmd.Parameters.AddWithValue("limit", NpgsqlDbType.Integer, limit);
+                cmd.Prepare();
+
+                using (var rdr = await cmd.ExecuteReaderAsync())
+                {
+                    var lst = new List<Tuple<ulong, ulong>>();
+                    while (await rdr.ReadAsync())
+                        lst.Add(Tuple.Create((ulong)(long)rdr["message_id"], (ulong)(long)rdr["author_id"]));
+                    return lst;
+                }
+            }
+        }
+
+        public async Task<string> GetDeleteAsync(DiscordChannel chn, ulong id)
+        {
+            using (var con = new NpgsqlConnection(this.ConnectionString))
+            using (var cmd = con.CreateCommand())
+            {
+                await con.OpenAsync();
+
+                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+
+                cmd.CommandText = string.Concat("SELECT contents[array_length(contents, 1)] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND deleted IS TRUE LIMIT 1;");
+                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)id);
+                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)chn.Id);
+                cmd.Prepare();
+
+                var res = await cmd.ExecuteScalarAsync();
+                if (!(res is DBNull))
+                    return (string)res;
+                return null;
             }
         }
 
