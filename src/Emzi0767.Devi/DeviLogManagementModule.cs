@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
@@ -123,6 +124,49 @@ namespace Emzi0767.Devi
                     await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Messages ", id), delete, 0));
                 else
                     await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Specfied messages was not found or was not deleted.", 1));
+            }
+
+            [Command("sql"), Hidden, RequireOwner]
+            public async Task SqlAsync(CommandContext ctx, [RemainingText] string query)
+            {
+                var dat = await this.DatabaseClient.ExecuteQueryAsync(query);
+
+                if (!dat.Any() || !dat.First().Any())
+                {
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Given query produced no results.", string.Concat("Query: ", Formatter.InlineCode(query), "."), 0));
+                    return;
+                }
+
+                var d0 = dat.First().Select(xd => xd.Key).OrderByDescending(xs => xs.Length).First().Length + 1;
+
+                var embed = this.Utilities.BuildEmbed(string.Concat("Results: ", dat.Count.ToString("#,##0")), string.Concat("Showing ", dat.Count > 24 ? "first 24" : "all", " results for query ", Formatter.InlineCode(query), ":"), 0);
+                var adat = dat.Take(24);
+
+                var i = 0;
+                foreach (var xdat in adat)
+                {
+                    var sb = new StringBuilder();
+
+                    foreach (var (k, v) in xdat)
+                        sb.Append(k).Append(new string(' ', d0 - k.Length)).Append("| ").AppendLine(v);
+
+                    embed.Fields.Add(new DiscordEmbedField
+                    {
+                        Name = string.Concat("Result #", i++),
+                        Value = Formatter.BlockCode(sb.ToString()),
+                        Inline = false
+                    });
+                }
+
+                if (dat.Count > 24)
+                    embed.Fields.Add(new DiscordEmbedField 
+                    { 
+                        Name = "Display incomplete", 
+                        Value = string.Concat((dat.Count - 24).ToString("#,##0"), " results were omitted."), 
+                        Inline = false 
+                    });
+                
+                await this.Utilities.SendEmbedAsync(ctx, embed);
             }
         }
     }

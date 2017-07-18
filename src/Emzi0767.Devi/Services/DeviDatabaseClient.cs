@@ -10,12 +10,13 @@ using NpgsqlTypes;
 
 namespace Emzi0767.Devi.Services
 {
-    public class DeviDatabaseClient
+    public class DeviDatabaseClient : IDisposable
     {
         private DeviDatabaseSettings Settings { get; }
         private string ConnectionString { get; }
         private List<ulong> IgnoredInternal { get; }
         public IReadOnlyList<ulong> Ignored { get; }
+        private NpgsqlConnection Connection { get; set; }
 
         public DeviDatabaseClient(DeviDatabaseSettings settings)
         {
@@ -39,11 +40,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task LogMessageCreateAsync(DiscordMessage msg)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
                 cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(message_id, author_id, channel_id, created, edits, contents, embeds, attachment_urls, deleted, edited) VALUES(@message_id, @author_id, @channel_id, @created, @edits, @contents, @embeds, @attachment_urls, @deleted, @edited);");
@@ -65,11 +63,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task LogMessageDeleteAsync(DiscordMessage msg)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
                 cmd.CommandText = string.Concat("UPDATE ", tbl, " SET deleted=@deleted WHERE message_id=@message_id AND channel_id=@channel_id;");
@@ -84,11 +79,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task LogMessageEditAsync(DiscordMessage msg)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
                 cmd.CommandText = string.Concat("UPDATE ", tbl, " SET edited=@edited, contents=array_append(contents, @contents), embeds=array_append(embeds, @embeds), edits=array_append(edits, @edit) WHERE message_id=@message_id AND channel_id=@channel_id");
@@ -106,11 +98,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task<IEnumerable<DateTime>> GetEditsAsync(DiscordMessage msg)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
                 cmd.CommandText = string.Concat("SELECT edits, created FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE LIMIT 1;");
@@ -133,11 +122,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task<string> GetEditAsync(DiscordMessage msg, DateTimeOffset which)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
                 if (msg.CreationDate.ToLocalTime() == which)
@@ -158,11 +144,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task<IEnumerable<Tuple<ulong, ulong>>> GetDeletesAsync(DiscordChannel chn, int limit)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
                 cmd.CommandText = string.Concat("SELECT message_id, author_id, contents[array_length(contents, 1)] FROM ", tbl, " WHERE channel_id=@channel_id AND deleted IS TRUE ORDER BY message_id DESC LIMIT @limit;");
@@ -182,11 +165,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task<string> GetDeleteAsync(DiscordChannel chn, ulong id)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
                 cmd.CommandText = string.Concat("SELECT contents[array_length(contents, 1)] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND deleted IS TRUE LIMIT 1;");
@@ -203,11 +183,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task LogReactionAsync(DiscordEmoji emote, DiscordUser user, DiscordMessage message, DiscordChannel channel, bool action)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "reaction_log");
 
                 cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(message_id, channel_id, user_id, reaction, action, action_timestamp) VALUES(@message_id, @channel_id, @user_id, @reaction, @action, @action_timestamp);");
@@ -225,11 +202,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task ConfigureGuildAsync(DiscordGuild guild, bool ignore)
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                await con.OpenAsync();
-
                 var tbl = string.Concat(this.Settings.TablePrefix, "log_ignore");
 
                 if (ignore)
@@ -245,11 +219,11 @@ namespace Emzi0767.Devi.Services
 
         public async Task PreconfigureAsync()
         {
-            using (var con = new NpgsqlConnection(this.ConnectionString))
-            using (var cmd = con.CreateCommand())
-            {
-                await con.OpenAsync();
+            this.Connection = new NpgsqlConnection(this.ConnectionString);
+            await this.Connection.OpenAsync();
 
+            using (var cmd = this.Connection.CreateCommand())
+            {
                 var tbl = string.Concat(this.Settings.TablePrefix, "log_ignore");
 
                 cmd.CommandText = string.Concat("SELECT guild_id FROM ", tbl, ";");
@@ -263,6 +237,43 @@ namespace Emzi0767.Devi.Services
                     }
                 }
             }
+        }
+
+        public async Task<IReadOnlyList<IReadOnlyDictionary<string, string>>> ExecuteQueryAsync(string query)
+        {
+            using (var cmd = this.Connection.CreateCommand())
+            {
+                cmd.CommandText = query;
+
+                try
+                {
+                    using (var rdr = await cmd.ExecuteReaderAsync())
+                    {
+                        var dicts = new List<IReadOnlyDictionary<string, string>>();
+                        while (await rdr.ReadAsync())
+                        {
+                            var dict = new Dictionary<string, string>();
+
+                            for (var i = 0; i < rdr.FieldCount; i++)
+                                dict[rdr.GetName(i)] = rdr[i] is DBNull ? "<null>" : rdr[i].ToString();
+
+                            dicts.Add(new ReadOnlyDictionary<string, string>(dict));
+                        }
+                        return new ReadOnlyCollection<IReadOnlyDictionary<string, string>>(dicts);
+                    }
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        public void Dispose()
+        {
+            if (this.Connection == null)
+                return;
+
+            this.Connection.Dispose();
+            this.Connection = null;
         }
     }
 }

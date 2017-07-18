@@ -325,11 +325,7 @@ namespace Emzi0767.Devi
 
             var nmsg = await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluating...", null, 0));
 
-            var globals = new DeviVariables()
-            {
-                Message = ctx.Message,
-                Client = ctx.Client
-            };
+            var globals = new DeviVariables(ctx);
 
             var sopts = ScriptOptions.Default;
             sopts = sopts.WithImports("System", "System.Collections.Generic", "System.Linq", "System.Text", "System.Threading.Tasks", "DSharpPlus", "DSharpPlus.CommandsNext");

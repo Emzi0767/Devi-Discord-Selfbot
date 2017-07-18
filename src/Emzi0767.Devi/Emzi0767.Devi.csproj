@@ -4,19 +4,19 @@
     <Description>A Discord selfbot</Description>
     <Copyright>Emzi0767 2017</Copyright>
     <AssemblyTitle>Dynamic Evaluation Implement (DEvI)</AssemblyTitle>
-    <TargetFrameworks>net47;netcoreapp1.1;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp1.1;netcoreapp2.0</TargetFrameworks>
     <AssemblyName>Emzi0767.Devi</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Emzi0767.Devi</PackageId>
-    <Version>2.0.10</Version>
+    <Version>2.0.11</Version>
     <Authors>Emzi0767</Authors>
     <PackageProjectUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/blob/master/LICENSE.txt</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageTags>Discord, DSharpPlus, Discord API, Discord bot, Discord selfbot, bot, selfbot, .NET, CSharp, Roslyn, Dynamic evaluation, Evaluation, Evaluator</PackageTags>
-    <AssemblyVersion>2.0.10.0</AssemblyVersion>
-    <FileVersion>2.0.10.0</FileVersion>
+    <AssemblyVersion>2.0.11.0</AssemblyVersion>
+    <FileVersion>2.0.11.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.0'">
@@ -24,8 +24,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="2.5.0-beta-00139" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.5.0-beta-00139" />
+    <PackageReference Include="DSharpPlus" Version="2.5.1" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.5.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-dev-61717-03" />
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-dev-61717-03" />
     <PackageReference Include="Npgsql" Version="3.2.4.1" />
@@ -33,6 +33,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp1.1'">
     <ProjectReference Include="..\Emzi0767.AppDomainPolyfill\Emzi0767.AppDomainPolyfill.csproj" />
+    <PackageReference Include="System.ValueTuple" Version="4.3.1" />
   </ItemGroup>
 
 </Project>
