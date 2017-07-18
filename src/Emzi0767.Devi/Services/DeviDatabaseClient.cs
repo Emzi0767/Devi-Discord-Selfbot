@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
 using Newtonsoft.Json;
@@ -16,6 +17,7 @@ namespace Emzi0767.Devi.Services
         private string ConnectionString { get; }
         private List<ulong> IgnoredInternal { get; }
         public IReadOnlyList<ulong> Ignored { get; }
+        private SemaphoreSlim Semaphore { get; }
         private NpgsqlConnection Connection { get; set; }
 
         public DeviDatabaseClient(DeviDatabaseSettings settings)
@@ -23,6 +25,7 @@ namespace Emzi0767.Devi.Services
             this.Settings = settings;
             this.IgnoredInternal = new List<ulong>();
             this.Ignored = new ReadOnlyCollection<ulong>(this.IgnoredInternal);
+            this.Semaphore = new SemaphoreSlim(1, 1);
 
             var csb = new NpgsqlConnectionStringBuilder
             {
@@ -40,6 +43,8 @@ namespace Emzi0767.Devi.Services
 
         public async Task LogMessageCreateAsync(DiscordMessage msg)
         {
+            await this.Semaphore.WaitAsync();
+
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
@@ -59,10 +64,14 @@ namespace Emzi0767.Devi.Services
 
                 await cmd.ExecuteNonQueryAsync();
             }
+
+            this.Semaphore.Release();
         }
 
         public async Task LogMessageDeleteAsync(DiscordMessage msg)
         {
+            await this.Semaphore.WaitAsync();
+
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
@@ -75,10 +84,14 @@ namespace Emzi0767.Devi.Services
 
                 await cmd.ExecuteNonQueryAsync();
             }
+
+            this.Semaphore.Release();
         }
 
         public async Task LogMessageEditAsync(DiscordMessage msg)
         {
+            await this.Semaphore.WaitAsync();
+
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
@@ -94,10 +107,15 @@ namespace Emzi0767.Devi.Services
 
                 await cmd.ExecuteNonQueryAsync();
             }
+
+            this.Semaphore.Release();
         }
 
         public async Task<IEnumerable<DateTime>> GetEditsAsync(DiscordMessage msg)
         {
+            await this.Semaphore.WaitAsync();
+
+            var edits = new List<DateTime>();
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
@@ -111,17 +129,24 @@ namespace Emzi0767.Devi.Services
                 {
                     while (await rdr.ReadAsync())
                     {
-                        var edits = new List<DateTime>((DateTime[])rdr["edits"]);
+                        edits.AddRange((DateTime[])rdr["edits"]);
                         edits.Insert(0, (DateTime)rdr["created"]);
-                        return edits;
                     }
-                    return null;
                 }
             }
+
+            this.Semaphore.Release();
+
+            if (edits.Any())
+                return edits;
+            return null;
         }
 
         public async Task<string> GetEditAsync(DiscordMessage msg, DateTimeOffset which)
         {
+            await this.Semaphore.WaitAsync();
+
+            object res = null;
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
@@ -135,15 +160,21 @@ namespace Emzi0767.Devi.Services
                 cmd.Parameters.AddWithValue("which", NpgsqlDbType.TimestampTZ, which);
                 cmd.Prepare();
 
-                var res = await cmd.ExecuteScalarAsync();
-                if (!(res is DBNull))
-                    return (string)res;
-                return null;
+                res = await cmd.ExecuteScalarAsync();
             }
+
+            this.Semaphore.Release();
+
+            if (!(res is DBNull))
+                return (string)res;
+            return null;
         }
 
         public async Task<IEnumerable<Tuple<ulong, ulong>>> GetDeletesAsync(DiscordChannel chn, int limit)
         {
+            await this.Semaphore.WaitAsync();
+
+            var lst = new List<Tuple<ulong, ulong>>();
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
@@ -155,16 +186,21 @@ namespace Emzi0767.Devi.Services
 
                 using (var rdr = await cmd.ExecuteReaderAsync())
                 {
-                    var lst = new List<Tuple<ulong, ulong>>();
                     while (await rdr.ReadAsync())
                         lst.Add(Tuple.Create((ulong)(long)rdr["message_id"], (ulong)(long)rdr["author_id"]));
-                    return lst;
                 }
             }
+
+            this.Semaphore.Release();
+
+            return lst;
         }
 
         public async Task<string> GetDeleteAsync(DiscordChannel chn, ulong id)
         {
+            await this.Semaphore.WaitAsync();
+
+            object res = null;
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
@@ -174,15 +210,20 @@ namespace Emzi0767.Devi.Services
                 cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)chn.Id);
                 cmd.Prepare();
 
-                var res = await cmd.ExecuteScalarAsync();
-                if (!(res is DBNull))
-                    return (string)res;
-                return null;
+                res = await cmd.ExecuteScalarAsync();
             }
+
+            this.Semaphore.Release();
+
+            if (!(res is DBNull))
+                return (string)res;
+            return null;
         }
 
         public async Task LogReactionAsync(DiscordEmoji emote, DiscordUser user, DiscordMessage message, DiscordChannel channel, bool action)
         {
+            await this.Semaphore.WaitAsync();
+
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "reaction_log");
@@ -198,10 +239,14 @@ namespace Emzi0767.Devi.Services
 
                 await cmd.ExecuteNonQueryAsync();
             }
+
+            this.Semaphore.Release();
         }
 
         public async Task ConfigureGuildAsync(DiscordGuild guild, bool ignore)
         {
+            await this.Semaphore.WaitAsync();
+
             using (var cmd = this.Connection.CreateCommand())
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "log_ignore");
@@ -215,12 +260,16 @@ namespace Emzi0767.Devi.Services
 
                 await cmd.ExecuteNonQueryAsync();
             }
+
+            this.Semaphore.Release();
         }
 
         public async Task PreconfigureAsync()
         {
             this.Connection = new NpgsqlConnection(this.ConnectionString);
             await this.Connection.OpenAsync();
+
+            await this.Semaphore.WaitAsync();
 
             using (var cmd = this.Connection.CreateCommand())
             {
@@ -237,10 +286,15 @@ namespace Emzi0767.Devi.Services
                     }
                 }
             }
+
+            this.Semaphore.Release();
         }
 
         public async Task<IReadOnlyList<IReadOnlyDictionary<string, string>>> ExecuteQueryAsync(string query)
         {
+            await this.Semaphore.WaitAsync();
+
+            var dicts = new List<IReadOnlyDictionary<string, string>>();
             using (var cmd = this.Connection.CreateCommand())
             {
                 cmd.CommandText = query;
@@ -249,7 +303,6 @@ namespace Emzi0767.Devi.Services
                 {
                     using (var rdr = await cmd.ExecuteReaderAsync())
                     {
-                        var dicts = new List<IReadOnlyDictionary<string, string>>();
                         while (await rdr.ReadAsync())
                         {
                             var dict = new Dictionary<string, string>();
@@ -259,11 +312,15 @@ namespace Emzi0767.Devi.Services
 
                             dicts.Add(new ReadOnlyDictionary<string, string>(dict));
                         }
-                        return new ReadOnlyCollection<IReadOnlyDictionary<string, string>>(dicts);
                     }
                 }
                 catch { }
             }
+
+            this.Semaphore.Release();
+
+            if (dicts != null)
+                return new ReadOnlyCollection<IReadOnlyDictionary<string, string>>(dicts);
             return null;
         }
 
