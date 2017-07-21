@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using Emzi0767.Devi.Services;
+using Emzi0767.Devi.Services.Data;
 using Newtonsoft.Json;
 
 // DEvI: Dynamic Evaluation Implement
@@ -29,6 +31,7 @@ namespace Emzi0767.Devi
         private static DeviGuildEmojiMap GuildEmoji { get; set; }
         private static DeviDatabaseClient DatabaseClient { get; set; }
         private static DeviUtilities Utilities { get; set; }
+        private static HttpClient Http { get; set; }
         #endregion
 
         #region Tracking and temporary storage
@@ -89,6 +92,7 @@ namespace Emzi0767.Devi
             }
 
             Utilities = new DeviUtilities();
+            Http = new HttpClient();
 
             var discord = new DiscordClient(new DiscordConfig() 
             { 
@@ -107,7 +111,13 @@ namespace Emzi0767.Devi
                 .AddInstance(GuildEmoji)
                 .AddInstance(DatabaseClient)
                 .AddInstance(Utilities)
+                .AddInstance(Http)
+                .AddInstance(Settings.CryptoSettings)
+                .Add<CryptonatorApiClient>()
+                .Add<NanopoolApiClient>()
                 .Build();
+
+            CommandsNextUtilities.RegisterConverter<ICurrency>(new CryptoCurrencyCodeConverter());
 
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration 
             { 
@@ -121,6 +131,7 @@ namespace Emzi0767.Devi
             DeviCommands.CommandErrored += DeviCommands_CommandErrored;
             DeviCommands.RegisterCommands<DeviCommandModule>();
             DeviCommands.RegisterCommands<DeviLogManagementModule>();
+            DeviCommands.RegisterCommands<DeviCryptomarketCommands>();
 
             DeviMessageTracker = new List<DiscordMessage>();
 

@@ -27,22 +27,28 @@ namespace Emzi0767.Devi.Services
             this.Ignored = new ReadOnlyCollection<ulong>(this.IgnoredInternal);
             this.Semaphore = new SemaphoreSlim(1, 1);
 
-            var csb = new NpgsqlConnectionStringBuilder
+            if (this.Settings.Enabled)
             {
-                Host = this.Settings.Hostname,
-                Port = this.Settings.Port,
-                Database = this.Settings.Database,
-                Username = this.Settings.Username,
-                Password = this.Settings.Password,
-                Pooling = true,
-                SslMode = SslMode.Prefer,
-                TrustServerCertificate = true
-            };
-            this.ConnectionString = csb.ConnectionString;
+                var csb = new NpgsqlConnectionStringBuilder
+                {
+                    Host = this.Settings.Hostname,
+                    Port = this.Settings.Port,
+                    Database = this.Settings.Database,
+                    Username = this.Settings.Username,
+                    Password = this.Settings.Password,
+                    Pooling = true,
+                    SslMode = SslMode.Prefer,
+                    TrustServerCertificate = true
+                };
+                this.ConnectionString = csb.ConnectionString;
+            }
         }
 
         public async Task LogMessageCreateAsync(DiscordMessage msg)
         {
+            if (!this.Settings.Enabled)
+                return;
+
             await this.Semaphore.WaitAsync();
 
             using (var cmd = this.Connection.CreateCommand())
@@ -70,6 +76,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task LogMessageDeleteAsync(DiscordMessage msg)
         {
+            if (!this.Settings.Enabled)
+                return;
+
             await this.Semaphore.WaitAsync();
 
             using (var cmd = this.Connection.CreateCommand())
@@ -90,6 +99,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task LogMessageEditAsync(DiscordMessage msg)
         {
+            if (!this.Settings.Enabled)
+                return;
+
             await this.Semaphore.WaitAsync();
 
             using (var cmd = this.Connection.CreateCommand())
@@ -113,6 +125,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task<IEnumerable<DateTime>> GetEditsAsync(DiscordMessage msg)
         {
+            if (!this.Settings.Enabled)
+                return null;
+
             await this.Semaphore.WaitAsync();
 
             var edits = new List<DateTime>();
@@ -144,6 +159,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task<string> GetEditAsync(DiscordMessage msg, DateTimeOffset which)
         {
+            if (!this.Settings.Enabled)
+                return null;
+
             await this.Semaphore.WaitAsync();
 
             object res = null;
@@ -172,6 +190,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task<IEnumerable<Tuple<ulong, ulong>>> GetDeletesAsync(DiscordChannel chn, int limit)
         {
+            if (!this.Settings.Enabled)
+                return null;
+
             await this.Semaphore.WaitAsync();
 
             var lst = new List<Tuple<ulong, ulong>>();
@@ -198,6 +219,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task<string> GetDeleteAsync(DiscordChannel chn, ulong id)
         {
+            if (!this.Settings.Enabled)
+                return null;
+
             await this.Semaphore.WaitAsync();
 
             object res = null;
@@ -222,6 +246,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task LogReactionAsync(DiscordEmoji emote, DiscordUser user, DiscordMessage message, DiscordChannel channel, bool action)
         {
+            if (!this.Settings.Enabled)
+                return;
+
             await this.Semaphore.WaitAsync();
 
             using (var cmd = this.Connection.CreateCommand())
@@ -245,6 +272,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task ConfigureGuildAsync(DiscordGuild guild, bool ignore)
         {
+            if (!this.Settings.Enabled)
+                return;
+
             await this.Semaphore.WaitAsync();
 
             using (var cmd = this.Connection.CreateCommand())
@@ -266,6 +296,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task PreconfigureAsync()
         {
+            if (!this.Settings.Enabled)
+                return;
+
             this.Connection = new NpgsqlConnection(this.ConnectionString);
             await this.Connection.OpenAsync();
 
@@ -292,6 +325,9 @@ namespace Emzi0767.Devi.Services
 
         public async Task<IReadOnlyList<IReadOnlyDictionary<string, string>>> ExecuteQueryAsync(string query)
         {
+            if (!this.Settings.Enabled)
+                return null;
+
             await this.Semaphore.WaitAsync();
 
             var dicts = new List<IReadOnlyDictionary<string, string>>();

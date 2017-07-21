@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using Emzi0767.Devi.Services;
+using Emzi0767.Devi.Services.Data;
+using Newtonsoft.Json;
 
 namespace Emzi0767.Devi
 {
@@ -15,10 +17,16 @@ namespace Emzi0767.Devi
 
         [JsonProperty("database_settings")]
         public DeviDatabaseSettings DatabaseSettings { get; set; }
+
+        [JsonProperty("crypto_settings")]
+        public DeviCryptoSettings CryptoSettings { get; set; }
     }
 
     public class DeviDatabaseSettings
     {
+        [JsonProperty("enabled")]
+        public bool Enabled { get; set; }
+
         [JsonProperty("hostname")]
         public string Hostname { get; set; }
 
@@ -36,5 +44,21 @@ namespace Emzi0767.Devi
 
         [JsonProperty("table_prefix")]
         public string TablePrefix { get; set; }
+    }
+
+    public class DeviCryptoSettings
+    {
+        [JsonProperty("default_currency")]
+        public string DefaultTargetCurrencyRaw { get; set; }
+
+        [JsonIgnore]
+        public FiatCurrency DefaultTargetCurrency
+        {
+            get { return CryptonatorApiClient.FiatCurrencies[this.DefaultTargetCurrencyRaw]; }
+            set { this.DefaultTargetCurrencyRaw = value.Code; }
+        }
+
+        [JsonProperty("eth_address")]
+        public string EthereumAddress { get; set; }
     }
 }
