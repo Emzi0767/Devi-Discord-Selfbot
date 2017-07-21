@@ -4,11 +4,17 @@
   "cache_size": 20,
   "database_settings":
   {
+    "enabled": true,
     "hostname": "localhost",
     "port": 5432,
     "database": "devi",
     "username": "devi",
     "password": "ived",
     "table_prefix": "devi_"
+  },
+  "crypto_settings": 
+  {
+    "default_currency": "USD",
+    "eth_address": "<ethereum address here>"
   }
 }
