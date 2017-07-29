@@ -4,7 +4,7 @@
     <Description>A Discord selfbot</Description>
     <Copyright>Emzi0767 2017</Copyright>
     <AssemblyTitle>Dynamic Evaluation Implement (DEvI)</AssemblyTitle>
-    <TargetFrameworks>netcoreapp1.1;netcoreapp2.0</TargetFrameworks>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>Emzi0767.Devi</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Emzi0767.Devi</PackageId>
@@ -29,11 +29,6 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-dev-61717-03" />
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-dev-61717-03" />
     <PackageReference Include="Npgsql" Version="3.2.4.1" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp1.1'">
-    <ProjectReference Include="..\Emzi0767.AppDomainPolyfill\Emzi0767.AppDomainPolyfill.csproj" />
-    <PackageReference Include="System.ValueTuple" Version="4.3.1" />
   </ItemGroup>
 
 </Project>
