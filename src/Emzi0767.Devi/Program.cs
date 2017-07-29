@@ -139,6 +139,7 @@ namespace Emzi0767.Devi
             discord.MessageCreated += Discord_MessageReceived;
             discord.MessageUpdate += Discord_MessageUpdate;
             discord.MessageDelete += Discord_MessageDelete;
+            discord.MessageBulkDelete += Discord_MessageBulkDelete;
             discord.Ready += Discord_Ready;
             discord.DebugLogger.LogMessageReceived += Discord_Log;
             discord.MessageReactionAdd += Discord_ReactionAdded;
@@ -298,6 +299,22 @@ namespace Emzi0767.Devi
             if (ea.Channel.Guild == null || (ea.Channel.Guild != null && !DatabaseClient.Ignored.Contains(ea.Channel.Guild.Id)))
                 return DatabaseClient.LogMessageDeleteAsync(msg);
             return Task.CompletedTask;
+        }
+
+        private static async Task Discord_MessageBulkDelete(MessageBulkDeleteEventArgs ea)
+        {
+            foreach (var msg in ea.Messages)
+            {
+                if (msg == null)
+                    continue;
+
+                var chn = msg.Channel;
+                if (chn == null)
+                    continue;
+                
+                if (ea.Channel.Guild == null || (ea.Channel.Guild != null && !DatabaseClient.Ignored.Contains(ea.Channel.Guild.Id)))
+                    await DatabaseClient.LogMessageDeleteAsync(msg);
+            }
         }
 
         private static Task Discord_MessageUpdate(MessageUpdateEventArgs ea)
