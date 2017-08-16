@@ -26,6 +26,8 @@ In order for bot to run, you will need to set up your environment.
 
 ### POSTGRESQL DATABASE
 
+The PostgreSQL database is optional if you disable it in the bot's config. If you do intend to use the DB-backed features of the bot, you need to proceed with the setup.
+
 1. If you haven't done so already, install PostgreSQL server (version 9.6 or better).
 2. Create a database for bot's data.
 3. Create a user for the database.
@@ -36,7 +38,8 @@ In order for bot to run, you will need to set up your environment.
 1. Create a directory for the bot.
 2. Copy bot's Publish results to the bot directory.
 3. Copy `devi.json`, `emoji.json`, and `donger.json` from project source to bot's directory.
-4. Edit `devi.json` and put your user's access token in the file.
+4. Edit `devi.json` and put your user's access token and database in the file.
+   * If you do not wish to use the DB-backed features of the bot, the config has an option to disable the database backend.
 
 ## RUNNING
 
