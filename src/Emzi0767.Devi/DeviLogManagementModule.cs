@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,7 +6,6 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using Emzi0767.Devi.Services;
-using Newtonsoft.Json;
 
 namespace Emzi0767.Devi
 {
@@ -29,7 +27,7 @@ namespace Emzi0767.Devi
             foreach (var gld in glds)
                 await this.DatabaseClient.ConfigureGuildAsync(gld, true);
             var gls = string.Join(", ", glds.Select(xg => string.Concat("`", Formatter.Strip(xg.Name), "`")));
-            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Configration successful", string.Concat("Following guilds are now exempt from logging:\n", gls), 0));
+            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Configration successful", string.Concat("Following guilds are now exempt from logging:\n", gls), 0).Build());
         }
 
         [Command("unignore")]
@@ -38,7 +36,7 @@ namespace Emzi0767.Devi
             foreach (var gld in glds)
                 await this.DatabaseClient.ConfigureGuildAsync(gld, false);
             var gls = string.Join(", ", glds.Select(xg => string.Concat("`", Formatter.Strip(xg.Name), "`")));
-            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Configration successful", string.Concat("Following guilds are no longer exempt from logging:\n", gls), 0));
+            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Configration successful", string.Concat("Following guilds are no longer exempt from logging:\n", gls), 0).Build());
         }
 
         [Group("query")]
@@ -61,20 +59,20 @@ namespace Emzi0767.Devi
 
                 if (msq == null)
                 {
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Message with specified ID was not found in this channel. Perhaps try deleted messages?", 1));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Message with specified ID was not found in this channel. Perhaps try deleted messages?", 1).Build());
                     return;
                 }
 
                 var edits = await this.DatabaseClient.GetEditsAsync(msq);
                 if (edits == null || edits.Count() <= 1)
                 {
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "This message does not have any edits registered.", 1));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "This message does not have any edits registered.", 1).Build());
                     return;
                 }
 
                 var editstr = string.Join("\n", edits.Select(xdto => xdto.ToString("yyyy-MM-dd HH:mm:ss.fff zzz")));
 
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Available edits", editstr, 0));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Available edits", editstr, 0).Build());
             }
 
             [Command("edit")]
@@ -85,23 +83,23 @@ namespace Emzi0767.Devi
 
                 if (msq == null)
                 {
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Message with specified ID was not found in this channel. Perhaps try deleted messages?", 1));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Message with specified ID was not found in this channel. Perhaps try deleted messages?", 1).Build());
                     return;
                 }
 
                 var edits = await this.DatabaseClient.GetEditsAsync(msq);
                 if (edits == null || edits.Count() <= 1)
                 {
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "This message does not have any edits registered.", 1));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "This message does not have any edits registered.", 1).Build());
                     return;
                 }
 
                 var editstr = await this.DatabaseClient.GetEditAsync(msq, which);
 
                 if (editstr != null)
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Edit from ", which.ToString("yyyy-MM-dd HH:mm:ss.fff zzz")), editstr, 0));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Edit from ", which.ToString("yyyy-MM-dd HH:mm:ss.fff zzz")), editstr, 0).Build());
                 else
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Specfied edit was not found.", 1));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Specfied edit was not found.", 1).Build());
             }
 
             [Command("deletes")]
@@ -111,7 +109,7 @@ namespace Emzi0767.Devi
                 var deletes = await this.DatabaseClient.GetDeletesAsync(chn, limit);
                 var str = string.Join("\n\n", deletes.Select(xtpl => string.Concat(xtpl.Item1, " by <@!", xtpl.Item2, ">")));
 
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Messages deleted in ", chn.Name), str, 0));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Messages deleted in ", chn.Name), str, 0).Build());
             }
 
             [Command("deleted")]
@@ -121,9 +119,9 @@ namespace Emzi0767.Devi
                 var delete = await this.DatabaseClient.GetDeleteAsync(chn, id);
 
                 if (delete != null)
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Messages ", id), delete, 0));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(string.Concat("Messages ", id), delete, 0).Build());
                 else
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Specfied messages was not found or was not deleted.", 1));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Query failed", "Specfied messages was not found or was not deleted.", 1).Build());
             }
 
             [Command("sql"), Hidden, RequireOwner]
@@ -133,7 +131,7 @@ namespace Emzi0767.Devi
 
                 if (!dat.Any() || !dat.First().Any())
                 {
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Given query produced no results.", string.Concat("Query: ", Formatter.InlineCode(query), "."), 0));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Given query produced no results.", string.Concat("Query: ", Formatter.InlineCode(query), "."), 0).Build());
                     return;
                 }
 
@@ -150,23 +148,13 @@ namespace Emzi0767.Devi
                     foreach (var (k, v) in xdat)
                         sb.Append(k).Append(new string(' ', d0 - k.Length)).Append("| ").AppendLine(v);
 
-                    embed.Fields.Add(new DiscordEmbedField
-                    {
-                        Name = string.Concat("Result #", i++),
-                        Value = Formatter.BlockCode(sb.ToString()),
-                        Inline = false
-                    });
+                    embed.AddField(string.Concat("Result #", i++), Formatter.BlockCode(sb.ToString()), false);
                 }
 
                 if (dat.Count > 24)
-                    embed.Fields.Add(new DiscordEmbedField 
-                    { 
-                        Name = "Display incomplete", 
-                        Value = string.Concat((dat.Count - 24).ToString("#,##0"), " results were omitted."), 
-                        Inline = false 
-                    });
+                    embed.AddField("Display incomplete", string.Concat((dat.Count - 24).ToString("#,##0"), " results were omitted."), false);
                 
-                await this.Utilities.SendEmbedAsync(ctx, embed);
+                await this.Utilities.SendEmbedAsync(ctx, embed.Build());
             }
         }
     }

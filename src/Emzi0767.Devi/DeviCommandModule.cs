@@ -41,7 +41,7 @@ namespace Emzi0767.Devi
             var rnd = new Random();
             var num = rnd.Next(min, max);
 
-            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Random Number", num.ToString("#,##0"), 0));
+            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Random Number", num.ToString("#,##0"), 0).Build());
         }
 
         [Command("eval"), Description("Evaluates C# code.")]
@@ -52,13 +52,13 @@ namespace Emzi0767.Devi
                 var result = await EvaluateAsync(ctx, code);
 
                 if (result != null && result.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluation Result", result.ReturnValue.ToString(), 2));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluation Result", result.ReturnValue.ToString(), 2).Build());
                 else
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluation Successful", "No result was returned.", 2));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluation Successful", "No result was returned.", 2).Build());
             }
             catch (Exception ex)
             {
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluation Failure", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluation Failure", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1).Build());
             }
         }
 
@@ -76,27 +76,27 @@ namespace Emzi0767.Devi
                     var embed = this.Utilities.BuildEmbed("Return value inspection", string.Concat("Return type:", t.ToString()), 2);
                     
                     if (ti.IsPrimitive || ti.IsEnum || t == typeof(DateTime) || t == typeof(DateTimeOffset) || t == typeof(TimeSpan))
-                        embed.Fields.Add(new DiscordEmbedField { Name = "Value", Value = this.Utilities.ObjectToString(result.ReturnValue), Inline = false });
+                        embed.AddField("Value", this.Utilities.ObjectToString(result.ReturnValue), false);
                     else
                     {
                         var rv = result.ReturnValue;
                         var psr = ti.GetProperties();
                         var ps = psr.Take(25);
-                        var efs = ps.Select(xp => new DiscordEmbedField { Name = string.Concat(xp.Name, " (", xp.PropertyType.ToString(), ")"), Value = this.Utilities.ObjectToString(xp.GetValue(rv)), Inline = true });
-                        embed.Fields.AddRange(efs);
+                        foreach (var xps in ps)
+                            embed.AddField(string.Concat(xps.Name, " (", xps.PropertyType.ToString(), ")"), this.Utilities.ObjectToString(xps.GetValue(rv)), true);
 
                         if (psr.Length > 25)
                             embed.Description = string.Concat(embed.Description, "\n\n**Warning**: Property count exceeds 25. Not all properties are displayed.");
                     }
 
-                    await this.Utilities.SendEmbedAsync(ctx, embed);
+                    await this.Utilities.SendEmbedAsync(ctx, embed.Build());
                 }
                 else
-                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Inspection Failed", "No result was returned.", 1));
+                    await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Inspection Failed", "No result was returned.", 1).Build());
             }
             catch (Exception ex)
             {
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Inspection Failed", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Inspection Failed", string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), 1).Build());
             }
         }
 
@@ -107,20 +107,16 @@ namespace Emzi0767.Devi
             var gld = cln.Guilds.FirstOrDefault(xg => xg.Key == guild);
             var chn = gld.Value.Channels.FirstOrDefault(xc => xc.Id == channel);
 
-            var embed = new DiscordEmbed()
+            var embed = new DiscordEmbedBuilder
             {
-                Color = 5267072,
+                Color = new DiscordColor(5267072),
                 Url = "https://discordapp.com/nitro",
                 Description = "**Discord Nitro** is required to view this message.",
-                Thumbnail = new DiscordEmbedThumbnail { Url = "http://i.imgur.com/1dH8EJa.png" },
-                Author = new DiscordEmbedAuthor()
-                {
-                    Name = "Discord Nitro Message",
-                    IconUrl = "https://cdn.discordapp.com/emojis/261735650192130049.png"
-                }
+                ThumbnailUrl = "http://i.imgur.com/1dH8EJa.png"
             };
+            embed.WithAuthor("Discord Nitro Message", "https://cdn.discordapp.com/emojis/261735650192130049.png");
 
-            await chn.SendMessageAsync("", false, embed);
+            await chn.SendMessageAsync("", false, embed.Build());
         }
 
         [Command("quote")]
@@ -204,33 +200,6 @@ namespace Emzi0767.Devi
             }
         }
 
-        [Command("guildemojishow")]
-        public async Task GuildEmojiShowAsync(CommandContext ctx)
-        {
-            var emoji = this.GuildEmoji.Mapping.OrderBy(xkvp => xkvp.Key).Select(xkvp => string.Concat(xkvp.Key.Replace("_", @"\_"), ": ", xkvp.Value));
-            var sb = new StringBuilder();
-            var embed = this.Utilities.BuildEmbed("All guild emoji", emoji.Count().ToString("#,### total"), 0);
-            embed.Fields = new List<DiscordEmbedField>();
-            foreach (var e in emoji)
-            {
-                if (sb.Length + 1 + e.Length >= 1023)
-                {
-                    embed.Fields.Add(new DiscordEmbedField { Name = "Emoji", Value = sb.ToString(), Inline = true });
-                    sb = new StringBuilder();
-                }
-                sb.Append(e).Append("\n");
-            }
-            embed.Fields.Add(new DiscordEmbedField { Name = "Emoji", Value = sb.ToString(), Inline = true });
-            await this.Utilities.SendEmbedAsync(ctx, embed);
-        }
-
-        [Command("guildemoji")]
-        public async Task GuildEmojiShowAsync(CommandContext ctx, string emoji)
-        {
-            var e = this.GuildEmoji.Mapping[emoji];
-            await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed(null, e, 0), "");
-        }
-
         [Command("dong")]
         public async Task DongAsync(CommandContext ctx, string dong)
         {
@@ -294,11 +263,11 @@ namespace Emzi0767.Devi
             else rs ^= 2;
 
             if (rs == 3)
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Success", "Setting changed successfully", 2));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Success", "Setting changed successfully", 2).Build());
             else if (rs == 2)
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Failure", "Invalid operation", 1));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Failure", "Invalid operation", 1).Build());
             else if (rs == 1)
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Failure", "Invalid setting", 1));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Failure", "Invalid setting", 1).Build());
         }
 
         [Command("save")]
@@ -323,7 +292,7 @@ namespace Emzi0767.Devi
 
             var cs = code.Substring(cs1, cs2 - cs1);
 
-            var nmsg = await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluating...", null, 0));
+            var nmsg = await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Evaluating...", null, 0).Build());
 
             var globals = new DeviVariables(ctx);
 

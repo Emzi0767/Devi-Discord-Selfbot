@@ -48,42 +48,27 @@ namespace Emzi0767.Devi
                     sb = new StringBuilder();
                     sb.AppendFormat("{0:#,##0.000000} {1} = {2:#,##0.000000} {3}", amount, Formatter.Bold(primary.Code), amount * kraken.Price, Formatter.Bold(secondary.Code));
 
-                    embed.Fields.Add(new DiscordEmbedField
-                    {
-                        Name = "Kraken rate",
-                        Value = sb.ToString(),
-                        Inline = false
-                    });
+                    embed.AddField("Kraken rate", sb.ToString(), false);
                 }
 
                 if (amount != 1m)
                 {
                     sb = new StringBuilder();
                     sb.AppendFormat("1.00 {0} = {1:#,##0.000000} {2}", Formatter.Bold(primary.Code), ticker.Price, Formatter.Bold(secondary.Code));
-                    
-                    embed.Fields.Add(new DiscordEmbedField
-                    {
-                        Name = "Exchange rate",
-                        Value = sb.ToString(),
-                        Inline = false
-                    });
+
+                    embed.AddField("Exchange rate", sb.ToString(), false);
                 }
 
                 if (ticker.ExchangedVolume != null)
                 {
-                    embed.Fields.Add(new DiscordEmbedField
-                    {
-                        Name = "Volume exchanged",
-                        Value = ticker.ExchangedVolume.Value.ToString("#,##0.00"),
-                        Inline = false
-                    });
+                    embed.AddField("Volume exchanged", ticker.ExchangedVolume.Value.ToString("#,##0.00"), false);
                 }
 
-                await this.Utilities.SendEmbedAsync(ctx, embed);
+                await this.Utilities.SendEmbedAsync(ctx, embed.Build());
             }
             catch (Exception ex)
             {
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Conversion failed", string.Concat("Cryptonator API responded with an error: ", Formatter.InlineCode(ex.Message)), 1));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Conversion failed", string.Concat("Cryptonator API responded with an error: ", Formatter.InlineCode(ex.Message)), 1).Build());
             }
         }
 
@@ -112,18 +97,13 @@ namespace Emzi0767.Devi
 
                 sb = new StringBuilder();
                 sb.AppendFormat("1.00 **ETH** = {1:#,##0.00} {2}", bal, ticker.Price, Formatter.Bold(target.Code));
-                embed.Fields.Add(new DiscordEmbedField
-                {
-                    Name = "Exchange rate",
-                    Value = sb.ToString(),
-                    Inline = false
-                });
+                embed.AddField("Exchange rate", sb.ToString(), false);
 
-                await this.Utilities.SendEmbedAsync(ctx, embed);
+                await this.Utilities.SendEmbedAsync(ctx, embed.Build());
             }
             catch (Exception ex)
             {
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Balance check failed", string.Concat("Nanopool API responded with an error: ", Formatter.InlineCode(ex.Message)), 1));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Balance check failed", string.Concat("Nanopool API responded with an error: ", Formatter.InlineCode(ex.Message)), 1).Build());
             }
         }
 
@@ -138,48 +118,18 @@ namespace Emzi0767.Devi
                     throw new Exception(resp.ErrorMessage);
                 var dat = resp.GetData<NanopoolGeneralData>();
 
-                var embed = this.Utilities.BuildEmbed(string.Concat("Status for ", address), "", 0);
+                var embed = this.Utilities.BuildEmbed(string.Concat("Status for ", address), "", 0)
+                    .AddField("Current hashrate", string.Concat(dat.CurrentHashrate.ToString("#,##0.00"), "MH/s"), true)
+                    .AddField("6h average hashrate", string.Concat(dat.AverageHashrate.Average6H.ToString("#,##0.00"), "MH/s"), true)
+                    .AddField("Current balance", string.Concat(dat.Balance.ToString("#,##0.000000"), " ETH (", dat.UnconfirmedBalance.ToString("#,##0.000000"), " ETH unconfirmed)"), true)
+                    .AddField("Worker count", string.Concat(dat.Workers.Count.ToString("#,##0")), true)
+                    .AddField("Last share", dat.Workers.Max(xw => xw.LastShare).ToString("yyyy-MM-dd HH:mm:ss zzz"), true);
 
-                embed.Fields.Add(new DiscordEmbedField
-                {
-                    Name = "Current hashrate",
-                    Value = string.Concat(dat.CurrentHashrate.ToString("#,##0.00"), "MH/s"),
-                    Inline = true
-                });
-
-                embed.Fields.Add(new DiscordEmbedField
-                {
-                    Name = "6h average hashrate",
-                    Value = string.Concat(dat.AverageHashrate.Average6H.ToString("#,##0.00"), "MH/s"),
-                    Inline = true
-                });
-
-                embed.Fields.Add(new DiscordEmbedField
-                {
-                    Name = "Current balance",
-                    Value = string.Concat(dat.Balance.ToString("#,##0.000000"), " ETH (", dat.UnconfirmedBalance.ToString("#,##0.000000"), " ETH unconfirmed)"),
-                    Inline = true
-                });
-
-                embed.Fields.Add(new DiscordEmbedField
-                {
-                    Name = "Worker count",
-                    Value = string.Concat(dat.Workers.Count.ToString("#,##0")),
-                    Inline = true
-                });
-
-                embed.Fields.Add(new DiscordEmbedField
-                {
-                    Name = "Last share",
-                    Value = dat.Workers.Max(xw => xw.LastShare).ToString("yyyy-MM-dd HH:mm:ss zzz"),
-                    Inline = true
-                });
-
-                await this.Utilities.SendEmbedAsync(ctx, embed);
+                await this.Utilities.SendEmbedAsync(ctx, embed.Build());
             }
             catch (Exception ex)
             {
-                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Balance check failed", string.Concat("Nanopool API responded with an error: ", Formatter.InlineCode(ex.Message)), 1));
+                await this.Utilities.SendEmbedAsync(ctx, this.Utilities.BuildEmbed("Balance check failed", string.Concat("Nanopool API responded with an error: ", Formatter.InlineCode(ex.Message)), 1).Build());
             }
         }
     }

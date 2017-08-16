@@ -8,27 +8,23 @@
     <AssemblyName>Emzi0767.Devi</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Emzi0767.Devi</PackageId>
-    <Version>2.0.16</Version>
+    <Version>2.1.0</Version>
     <Authors>Emzi0767</Authors>
     <PackageProjectUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/blob/master/LICENSE.txt</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/Emzi0767/Devi-Discord-Selfbot/</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageTags>Discord, DSharpPlus, Discord API, Discord bot, Discord selfbot, bot, selfbot, .NET, CSharp, Roslyn, Dynamic evaluation, Evaluation, Evaluator</PackageTags>
-    <AssemblyVersion>2.0.16.0</AssemblyVersion>
-    <FileVersion>2.0.16.0</FileVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp2.0'">
-    <RuntimeFrameworkVersion>2.0.0-preview3-25518-01</RuntimeFrameworkVersion>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
+    <FileVersion>2.1.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="2.5.4" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.5.4" />
+    <PackageReference Include="DSharpPlus" Version="2.5.5-beta-00187" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="2.5.5-beta-00187" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="3.0.0-dev-61717-03" />
     <PackageReference Include="Microsoft.CodeAnalysis.Scripting.Common" Version="3.0.0-dev-61717-03" />
-    <PackageReference Include="Npgsql" Version="3.2.4.1" />
+    <PackageReference Include="Npgsql" Version="3.2.5" />
   </ItemGroup>
 
 </Project>
