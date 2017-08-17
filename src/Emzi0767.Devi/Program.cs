@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using Emzi0767.Devi.Crypto;
 using Emzi0767.Devi.Services;
 using Emzi0767.Devi.Services.Data;
 using Newtonsoft.Json;
@@ -32,6 +33,7 @@ namespace Emzi0767.Devi
         private static DeviDatabaseClient DatabaseClient { get; set; }
         private static DeviUtilities Utilities { get; set; }
         private static HttpClient Http { get; set; }
+        private static KeyManager KeyManager { get; set; }
         #endregion
 
         #region Tracking and temporary storage
@@ -45,6 +47,10 @@ namespace Emzi0767.Devi
 
         private static async Task Order66()
         {
+            KeyManager = new KeyManager("keystore.json");
+            if (!KeyManager.HasKey("pgmain"))
+                KeyManager.AddKey("pgmain", 256);
+
             var l = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             GuildEmoji = new DeviGuildEmojiMap(new Dictionary<string, string>());
 
@@ -62,7 +68,7 @@ namespace Emzi0767.Devi
                 throw new FileNotFoundException("Unable to load configuration file (devi.json)!");
             }
 
-            DatabaseClient = new DeviDatabaseClient(Settings.DatabaseSettings);
+            DatabaseClient = new DeviDatabaseClient(Settings.DatabaseSettings, KeyManager);
             await DatabaseClient.PreconfigureAsync();
 
             if (File.Exists(emx))
@@ -113,11 +119,12 @@ namespace Emzi0767.Devi
                 .AddInstance(Utilities)
                 .AddInstance(Http)
                 .AddInstance(Settings.CryptoSettings)
+                .AddInstance(KeyManager)
                 .Add<CryptonatorApiClient>()
                 .Add<NanopoolApiClient>()
                 .Build();
 
-            CommandsNextUtilities.RegisterConverter<ICurrency>(new CryptoCurrencyCodeConverter());
+            CommandsNextUtilities.RegisterConverter(new CryptoCurrencyCodeConverter());
 
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration 
             { 

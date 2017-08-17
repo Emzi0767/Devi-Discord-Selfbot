@@ -5,13 +5,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
+using Emzi0767.Devi.Crypto;
 using Newtonsoft.Json;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace Emzi0767.Devi.Services
 {
-    public class DeviDatabaseClient : IDisposable
+    internal class DeviDatabaseClient : IDisposable
     {
         private DeviDatabaseSettings Settings { get; }
         private string ConnectionString { get; }
@@ -19,13 +20,15 @@ namespace Emzi0767.Devi.Services
         public IReadOnlyList<ulong> Ignored { get; }
         private SemaphoreSlim Semaphore { get; }
         private NpgsqlConnection Connection { get; set; }
+        private KeyManager KeyManager { get; }
 
-        public DeviDatabaseClient(DeviDatabaseSettings settings)
+        public DeviDatabaseClient(DeviDatabaseSettings settings, KeyManager key_manager)
         {
             this.Settings = settings;
             this.IgnoredInternal = new List<ulong>();
             this.Ignored = new ReadOnlyCollection<ulong>(this.IgnoredInternal);
             this.Semaphore = new SemaphoreSlim(1, 1);
+            this.KeyManager = key_manager;
 
             if (this.Settings.Enabled)
             {
@@ -55,13 +58,16 @@ namespace Emzi0767.Devi.Services
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
+                var contents = msg.Content ?? "";
+                this.KeyManager.Encrypt(contents, out var enconts, "pgmain");
+
                 cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(message_id, author_id, channel_id, created, edits, contents, embeds, attachment_urls, deleted, edited) VALUES(@message_id, @author_id, @channel_id, @created, @edits, @contents, @embeds, @attachment_urls, @deleted, @edited);");
                 cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
                 cmd.Parameters.AddWithValue("author_id", NpgsqlDbType.Bigint, (long)msg.Author.Id);
                 cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
                 cmd.Parameters.AddWithValue("created", NpgsqlDbType.TimestampTZ, msg.CreationDate);
                 cmd.Parameters.AddWithValue("edits", NpgsqlDbType.TimestampTZ | NpgsqlDbType.Array, new DateTimeOffset[] {});
-                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text | NpgsqlDbType.Array, new[] { msg.Content ?? "" });
+                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text | NpgsqlDbType.Array, new[] { enconts.ToBase64() });
                 cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb | NpgsqlDbType.Array, new[] { JsonConvert.SerializeObject(msg.Embeds) });
                 cmd.Parameters.AddWithValue("attachment_urls", NpgsqlDbType.Text | NpgsqlDbType.Array, msg.Attachments.Select(xa => xa.Url).ToArray());
                 cmd.Parameters.AddWithValue("deleted", NpgsqlDbType.Boolean, false);
@@ -108,11 +114,14 @@ namespace Emzi0767.Devi.Services
             {
                 var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
+                var contents = msg.Content ?? "";
+                this.KeyManager.Encrypt(contents, out var enconts, "pgmain");
+
                 cmd.CommandText = string.Concat("UPDATE ", tbl, " SET edited=@edited, contents=array_append(contents, @contents), embeds=array_append(embeds, @embeds), edits=array_append(edits, @edit) WHERE message_id=@message_id AND channel_id=@channel_id");
                 cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, true);
                 cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
                 cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text, msg.Content ?? "");
+                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text, enconts.ToBase64());
                 cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb, JsonConvert.SerializeObject(msg.Embeds));
                 cmd.Parameters.AddWithValue("edit", NpgsqlDbType.TimestampTZ, msg.IsEdited ? msg.EditedTimestamp : DateTimeOffset.Now);
                 cmd.Prepare();
@@ -184,7 +193,11 @@ namespace Emzi0767.Devi.Services
             this.Semaphore.Release();
 
             if (!(res is DBNull))
-                return (string)res;
+            {
+                var x = (string)res;
+                this.KeyManager.Decrypt(x.FromBase64(), out x, "pgmain");
+                return x;
+            }
             return null;
         }
 
@@ -240,7 +253,11 @@ namespace Emzi0767.Devi.Services
             this.Semaphore.Release();
 
             if (!(res is DBNull))
-                return (string)res;
+            {
+                var x = (string)res;
+                this.KeyManager.Decrypt(x.FromBase64(), out x, "pgmain");
+                return x;
+            }
             return null;
         }
 
