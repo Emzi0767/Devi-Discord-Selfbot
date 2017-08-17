@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace Emzi0767.Devi.Crypto
 {
-    internal sealed class KeyManager
+    public sealed class KeyManager
     {
         private static Encoding Encoding { get; }
 

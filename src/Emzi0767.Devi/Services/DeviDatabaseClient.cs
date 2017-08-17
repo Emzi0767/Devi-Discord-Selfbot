@@ -12,7 +12,7 @@ using NpgsqlTypes;
 
 namespace Emzi0767.Devi.Services
 {
-    internal class DeviDatabaseClient : IDisposable
+    public class DeviDatabaseClient : IDisposable
     {
         private DeviDatabaseSettings Settings { get; }
         private string ConnectionString { get; }
