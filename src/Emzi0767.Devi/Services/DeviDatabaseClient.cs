@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
@@ -21,6 +22,9 @@ namespace Emzi0767.Devi.Services
         private SemaphoreSlim Semaphore { get; }
         private NpgsqlConnection Connection { get; set; }
         private KeyManager KeyManager { get; }
+
+        private PropertyInfo MessageDiscordProperty { get; }
+        private PropertyInfo ChannelDiscordProperty { get; }
 
         public DeviDatabaseClient(DeviDatabaseSettings settings, KeyManager key_manager)
         {
@@ -45,6 +49,12 @@ namespace Emzi0767.Devi.Services
                 };
                 this.ConnectionString = csb.ConnectionString;
             }
+
+            // this is really half-assed, but I don't care
+            this.MessageDiscordProperty = typeof(DiscordMessage).GetTypeInfo()
+                .GetDeclaredProperty("Discord");
+            this.ChannelDiscordProperty = typeof(DiscordChannel).GetTypeInfo()
+                .GetDeclaredProperty("Discord");
         }
 
         public async Task LogMessageCreateAsync(DiscordMessage msg)
@@ -54,30 +64,45 @@ namespace Emzi0767.Devi.Services
 
             await this.Semaphore.WaitAsync();
 
-            using (var cmd = this.Connection.CreateCommand())
+            try
             {
-                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+                using (var cmd = this.Connection.CreateCommand())
+                {
+                    var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
-                var contents = msg.Content ?? "";
-                this.KeyManager.Encrypt(contents, out var enconts, "pgmain");
+                    var contents = msg.Content ?? "";
+                    this.KeyManager.Encrypt(contents, out var enconts, "pgmain");
 
-                cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(message_id, author_id, channel_id, created, edits, contents, embeds, attachment_urls, deleted, edited) VALUES(@message_id, @author_id, @channel_id, @created, @edits, @contents, @embeds, @attachment_urls, @deleted, @edited);");
-                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
-                cmd.Parameters.AddWithValue("author_id", NpgsqlDbType.Bigint, (long)msg.Author.Id);
-                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                cmd.Parameters.AddWithValue("created", NpgsqlDbType.TimestampTZ, msg.CreationDate);
-                cmd.Parameters.AddWithValue("edits", NpgsqlDbType.TimestampTZ | NpgsqlDbType.Array, new DateTimeOffset[] {});
-                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text | NpgsqlDbType.Array, new[] { enconts.ToBase64() });
-                cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb | NpgsqlDbType.Array, new[] { JsonConvert.SerializeObject(msg.Embeds) });
-                cmd.Parameters.AddWithValue("attachment_urls", NpgsqlDbType.Text | NpgsqlDbType.Array, msg.Attachments.Select(xa => xa.Url).ToArray());
-                cmd.Parameters.AddWithValue("deleted", NpgsqlDbType.Boolean, false);
-                cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, false);
-                cmd.Prepare();
+                    cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(message_id, author_id, channel_id, created, edits, contents, embeds, attachment_urls, deleted, edited) VALUES(@message_id, @author_id, @channel_id, @created, @edits, @contents, @embeds, @attachment_urls, @deleted, @edited);");
+                    cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
+                    cmd.Parameters.AddWithValue("author_id", NpgsqlDbType.Bigint, (long)msg.Author.Id);
+                    cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
+                    cmd.Parameters.AddWithValue("created", NpgsqlDbType.TimestampTZ, msg.CreationDate);
+                    cmd.Parameters.AddWithValue("edits", NpgsqlDbType.TimestampTZ | NpgsqlDbType.Array, new DateTimeOffset[] { });
+                    cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text | NpgsqlDbType.Array, new[] { enconts.ToBase64() });
+                    cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb | NpgsqlDbType.Array, new[] { JsonConvert.SerializeObject(msg.Embeds) });
+                    cmd.Parameters.AddWithValue("attachment_urls", NpgsqlDbType.Text | NpgsqlDbType.Array, msg.Attachments.Select(xa => xa.Url).ToArray());
+                    cmd.Parameters.AddWithValue("deleted", NpgsqlDbType.Boolean, false);
+                    cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, false);
+                    cmd.Prepare();
 
-                await cmd.ExecuteNonQueryAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
             }
+            catch (Exception ex)
+            {
+                if (this.MessageDiscordProperty != null && msg != null)
+                {
+                    var discord = this.MessageDiscordProperty.GetValue(msg) as DiscordClient;
 
-            this.Semaphore.Release();
+                    if (discord != null)
+                        discord.DebugLogger.LogMessage(LogLevel.Error, "DEvI DB", string.Concat("An exception occured while logging message creation: ", ex.GetType(), ": ", ex.Message), DateTime.Now);
+                }
+            }
+            finally
+            {
+                this.Semaphore.Release();
+            }
         }
 
         public async Task LogMessageDeleteAsync(DiscordMessage msg)
@@ -87,20 +112,32 @@ namespace Emzi0767.Devi.Services
 
             await this.Semaphore.WaitAsync();
 
-            using (var cmd = this.Connection.CreateCommand())
+            try
             {
-                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+                using (var cmd = this.Connection.CreateCommand())
+                {
+                    var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
-                cmd.CommandText = string.Concat("UPDATE ", tbl, " SET deleted=@deleted WHERE message_id=@message_id AND channel_id=@channel_id;");
-                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
-                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                cmd.Parameters.AddWithValue("deleted", NpgsqlDbType.Boolean, true);
-                cmd.Prepare();
+                    cmd.CommandText = string.Concat("UPDATE ", tbl, " SET deleted=@deleted WHERE message_id=@message_id AND channel_id=@channel_id;");
+                    cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
+                    cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
+                    cmd.Parameters.AddWithValue("deleted", NpgsqlDbType.Boolean, true);
+                    cmd.Prepare();
 
-                await cmd.ExecuteNonQueryAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
             }
+            catch (Exception ex)
+            {
+                var discord = this.MessageDiscordProperty.GetValue(msg) as DiscordClient;
 
-            this.Semaphore.Release();
+                if (discord != null)
+                    discord.DebugLogger.LogMessage(LogLevel.Error, "DEvI DB", string.Concat("An exception occured while logging message deletion: ", ex.GetType(), ": ", ex.Message), DateTime.Now);
+            }
+            finally
+            {
+                this.Semaphore.Release();
+            }
         }
 
         public async Task LogMessageEditAsync(DiscordMessage msg)
@@ -110,26 +147,38 @@ namespace Emzi0767.Devi.Services
 
             await this.Semaphore.WaitAsync();
 
-            using (var cmd = this.Connection.CreateCommand())
+            try
             {
-                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+                using (var cmd = this.Connection.CreateCommand())
+                {
+                    var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
-                var contents = msg.Content ?? "";
-                this.KeyManager.Encrypt(contents, out var enconts, "pgmain");
+                    var contents = msg.Content ?? "";
+                    this.KeyManager.Encrypt(contents, out var enconts, "pgmain");
 
-                cmd.CommandText = string.Concat("UPDATE ", tbl, " SET edited=@edited, contents=array_append(contents, @contents), embeds=array_append(embeds, @embeds), edits=array_append(edits, @edit) WHERE message_id=@message_id AND channel_id=@channel_id");
-                cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, true);
-                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
-                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text, enconts.ToBase64());
-                cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb, JsonConvert.SerializeObject(msg.Embeds));
-                cmd.Parameters.AddWithValue("edit", NpgsqlDbType.TimestampTZ, msg.IsEdited ? msg.EditedTimestamp : DateTimeOffset.Now);
-                cmd.Prepare();
+                    cmd.CommandText = string.Concat("UPDATE ", tbl, " SET edited=@edited, contents=array_append(contents, @contents), embeds=array_append(embeds, @embeds), edits=array_append(edits, @edit) WHERE message_id=@message_id AND channel_id=@channel_id");
+                    cmd.Parameters.AddWithValue("edited", NpgsqlDbType.Boolean, true);
+                    cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
+                    cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
+                    cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text, enconts.ToBase64());
+                    cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb, JsonConvert.SerializeObject(msg.Embeds));
+                    cmd.Parameters.AddWithValue("edit", NpgsqlDbType.TimestampTZ, msg.IsEdited ? msg.EditedTimestamp : DateTimeOffset.Now);
+                    cmd.Prepare();
 
-                await cmd.ExecuteNonQueryAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
             }
+            catch (Exception ex)
+            {
+                var discord = this.MessageDiscordProperty.GetValue(msg) as DiscordClient;
 
-            this.Semaphore.Release();
+                if (discord != null)
+                    discord.DebugLogger.LogMessage(LogLevel.Error, "DEvI DB", string.Concat("An exception occured while logging message edit: ", ex.GetType(), ": ", ex.Message), DateTime.Now);
+            }
+            finally
+            {
+                this.Semaphore.Release();
+            }
         }
 
         public async Task<IEnumerable<DateTime>> GetEditsAsync(DiscordMessage msg)
@@ -140,26 +189,38 @@ namespace Emzi0767.Devi.Services
             await this.Semaphore.WaitAsync();
 
             var edits = new List<DateTime>();
-            using (var cmd = this.Connection.CreateCommand())
+            try
             {
-                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
-
-                cmd.CommandText = string.Concat("SELECT edits, created FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE LIMIT 1;");
-                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
-                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                cmd.Prepare();
-
-                using (var rdr = await cmd.ExecuteReaderAsync())
+                using (var cmd = this.Connection.CreateCommand())
                 {
-                    while (await rdr.ReadAsync())
+                    var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+
+                    cmd.CommandText = string.Concat("SELECT edits, created FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE LIMIT 1;");
+                    cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
+                    cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
+                    cmd.Prepare();
+
+                    using (var rdr = await cmd.ExecuteReaderAsync())
                     {
-                        edits.AddRange((DateTime[])rdr["edits"]);
-                        edits.Insert(0, (DateTime)rdr["created"]);
+                        while (await rdr.ReadAsync())
+                        {
+                            edits.AddRange((DateTime[])rdr["edits"]);
+                            edits.Insert(0, (DateTime)rdr["created"]);
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                var discord = this.MessageDiscordProperty.GetValue(msg) as DiscordClient;
 
-            this.Semaphore.Release();
+                if (discord != null)
+                    discord.DebugLogger.LogMessage(LogLevel.Error, "DEvI DB", string.Concat("An exception occured while retrieving message edits: ", ex.GetType(), ": ", ex.Message), DateTime.Now);
+            }
+            finally
+            {
+                this.Semaphore.Release();
+            }
 
             if (edits.Any())
                 return edits;
@@ -174,23 +235,35 @@ namespace Emzi0767.Devi.Services
             await this.Semaphore.WaitAsync();
 
             object res = null;
-            using (var cmd = this.Connection.CreateCommand())
+            try
             {
-                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+                using (var cmd = this.Connection.CreateCommand())
+                {
+                    var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
-                if (msg.CreationDate.ToLocalTime() == which)
-                    cmd.CommandText = string.Concat("SELECT contents[1] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE AND created=@which LIMIT 1;");
-                else
-                    cmd.CommandText = string.Concat("SELECT contents[array_position(edits, @which) + 1] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE AND array_position(edits, @which) IS NOT NULL LIMIT 1;");
-                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
-                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                cmd.Parameters.AddWithValue("which", NpgsqlDbType.TimestampTZ, which);
-                cmd.Prepare();
+                    if (msg.CreationDate.ToLocalTime() == which)
+                        cmd.CommandText = string.Concat("SELECT contents[1] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE AND created=@which LIMIT 1;");
+                    else
+                        cmd.CommandText = string.Concat("SELECT contents[array_position(edits, @which) + 1] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE AND array_position(edits, @which) IS NOT NULL LIMIT 1;");
+                    cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
+                    cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
+                    cmd.Parameters.AddWithValue("which", NpgsqlDbType.TimestampTZ, which);
+                    cmd.Prepare();
 
-                res = await cmd.ExecuteScalarAsync();
+                    res = await cmd.ExecuteScalarAsync();
+                }
             }
+            catch (Exception ex)
+            {
+                var discord = this.MessageDiscordProperty.GetValue(msg) as DiscordClient;
 
-            this.Semaphore.Release();
+                if (discord != null)
+                    discord.DebugLogger.LogMessage(LogLevel.Error, "DEvI DB", string.Concat("An exception occured while retrieving message edit: ", ex.GetType(), ": ", ex.Message), DateTime.Now);
+            }
+            finally
+            {
+                this.Semaphore.Release();
+            }
 
             if (!(res is DBNull))
             {
@@ -209,23 +282,35 @@ namespace Emzi0767.Devi.Services
             await this.Semaphore.WaitAsync();
 
             var lst = new List<Tuple<ulong, ulong>>();
-            using (var cmd = this.Connection.CreateCommand())
+            try
             {
-                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
-
-                cmd.CommandText = string.Concat("SELECT message_id, author_id, contents[array_length(contents, 1)] FROM ", tbl, " WHERE channel_id=@channel_id AND deleted IS TRUE ORDER BY message_id DESC LIMIT @limit;");
-                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)chn.Id);
-                cmd.Parameters.AddWithValue("limit", NpgsqlDbType.Integer, limit);
-                cmd.Prepare();
-
-                using (var rdr = await cmd.ExecuteReaderAsync())
+                using (var cmd = this.Connection.CreateCommand())
                 {
-                    while (await rdr.ReadAsync())
-                        lst.Add(Tuple.Create((ulong)(long)rdr["message_id"], (ulong)(long)rdr["author_id"]));
+                    var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+
+                    cmd.CommandText = string.Concat("SELECT message_id, author_id, contents[array_length(contents, 1)] FROM ", tbl, " WHERE channel_id=@channel_id AND deleted IS TRUE ORDER BY message_id DESC LIMIT @limit;");
+                    cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)chn.Id);
+                    cmd.Parameters.AddWithValue("limit", NpgsqlDbType.Integer, limit);
+                    cmd.Prepare();
+
+                    using (var rdr = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await rdr.ReadAsync())
+                            lst.Add(Tuple.Create((ulong)(long)rdr["message_id"], (ulong)(long)rdr["author_id"]));
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                var discord = this.ChannelDiscordProperty.GetValue(chn) as DiscordClient;
 
-            this.Semaphore.Release();
+                if (discord != null)
+                    discord.DebugLogger.LogMessage(LogLevel.Error, "DEvI DB", string.Concat("An exception occured while retrieving deleted messages: ", ex.GetType(), ": ", ex.Message), DateTime.Now);
+            }
+            finally
+            {
+                this.Semaphore.Release();
+            }
 
             return lst;
         }
@@ -238,19 +323,31 @@ namespace Emzi0767.Devi.Services
             await this.Semaphore.WaitAsync();
 
             object res = null;
-            using (var cmd = this.Connection.CreateCommand())
+            try
             {
-                var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
+                using (var cmd = this.Connection.CreateCommand())
+                {
+                    var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
-                cmd.CommandText = string.Concat("SELECT contents[array_length(contents, 1)] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND deleted IS TRUE LIMIT 1;");
-                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)id);
-                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)chn.Id);
-                cmd.Prepare();
+                    cmd.CommandText = string.Concat("SELECT contents[array_length(contents, 1)] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND deleted IS TRUE LIMIT 1;");
+                    cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)id);
+                    cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)chn.Id);
+                    cmd.Prepare();
 
-                res = await cmd.ExecuteScalarAsync();
+                    res = await cmd.ExecuteScalarAsync();
+                }
             }
+            catch (Exception ex)
+            {
+                var discord = this.ChannelDiscordProperty.GetValue(chn) as DiscordClient;
 
-            this.Semaphore.Release();
+                if (discord != null)
+                    discord.DebugLogger.LogMessage(LogLevel.Error, "DEvI DB", string.Concat("An exception occured while retrieving deleted message: ", ex.GetType(), ": ", ex.Message), DateTime.Now);
+            }
+            finally
+            {
+                this.Semaphore.Release();
+            }
 
             if (!(res is DBNull))
             {
@@ -268,20 +365,34 @@ namespace Emzi0767.Devi.Services
 
             await this.Semaphore.WaitAsync();
 
-            using (var cmd = this.Connection.CreateCommand())
+            try
             {
-                var tbl = string.Concat(this.Settings.TablePrefix, "reaction_log");
+                using (var cmd = this.Connection.CreateCommand())
+                {
+                    var tbl = string.Concat(this.Settings.TablePrefix, "reaction_log");
 
-                cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(message_id, channel_id, user_id, reaction, action, action_timestamp) VALUES(@message_id, @channel_id, @user_id, @reaction, @action, @action_timestamp);");
-                cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)message.Id);
-                cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)channel.Id);
-                cmd.Parameters.AddWithValue("user_id", NpgsqlDbType.Bigint, (long)user.Id);
-                cmd.Parameters.AddWithValue("reaction", NpgsqlDbType.Text, emote.ToString());
-                cmd.Parameters.AddWithValue("action", NpgsqlDbType.Boolean, action);
-                cmd.Parameters.AddWithValue("action_timestamp", NpgsqlDbType.TimestampTZ, DateTimeOffset.Now);
-                cmd.Prepare();
+                    cmd.CommandText = string.Concat("INSERT INTO ", tbl, "(message_id, channel_id, user_id, reaction, action, action_timestamp) VALUES(@message_id, @channel_id, @user_id, @reaction, @action, @action_timestamp);");
+                    cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)message.Id);
+                    cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)channel.Id);
+                    cmd.Parameters.AddWithValue("user_id", NpgsqlDbType.Bigint, (long)user.Id);
+                    cmd.Parameters.AddWithValue("reaction", NpgsqlDbType.Text, emote.ToString());
+                    cmd.Parameters.AddWithValue("action", NpgsqlDbType.Boolean, action);
+                    cmd.Parameters.AddWithValue("action_timestamp", NpgsqlDbType.TimestampTZ, DateTimeOffset.Now);
+                    cmd.Prepare();
 
-                await cmd.ExecuteNonQueryAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                var discord = this.MessageDiscordProperty.GetValue(message) as DiscordClient;
+
+                if (discord != null)
+                    discord.DebugLogger.LogMessage(LogLevel.Error, "DEvI DB", string.Concat("An exception occured while logging message reaction: ", ex.GetType(), ": ", ex.Message), DateTime.Now);
+            }
+            finally
+            {
+                this.Semaphore.Release();
             }
 
             this.Semaphore.Release();
