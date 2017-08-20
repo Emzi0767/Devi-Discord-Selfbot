@@ -394,8 +394,6 @@ namespace Emzi0767.Devi.Services
             {
                 this.Semaphore.Release();
             }
-
-            this.Semaphore.Release();
         }
 
         public async Task ConfigureGuildAsync(DiscordGuild guild, bool ignore)
