@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.Entities;
 
 namespace Emzi0767.Devi.Services
 {
@@ -14,7 +14,7 @@ namespace Emzi0767.Devi.Services
             var mod = msg.Author.Id == ctx.Client.CurrentUser.Id;
 
             if (mod)
-                await msg.EditAsync(content);
+                await msg.ModifyAsync(content);
             else
                 msg = await msg.Channel.SendMessageAsync(string.Concat(msg.Author.Mention, ": ", content));
 
@@ -32,7 +32,7 @@ namespace Emzi0767.Devi.Services
             var mod = msg.Author.Id == ctx.Client.CurrentUser.Id;
 
             if (mod)
-                await msg.EditAsync(!string.IsNullOrWhiteSpace(content) ? content : msg.Content, embed);
+                await msg.ModifyAsync(!string.IsNullOrWhiteSpace(content) ? content : msg.Content, embed);
             else if (!string.IsNullOrWhiteSpace(content))
                 msg = await msg.Channel.SendMessageAsync(string.Concat(msg.Author.Mention, ": ", content), false, embed);
             else
@@ -115,11 +115,15 @@ namespace Emzi0767.Devi.Services
         public DiscordEmbedBuilder BuildQuoteEmbed(DiscordMessage msq, CommandContext ctx)
         {
             var author = msq.Author;
-            var author1 = ctx.Guild.GetMemberAsync(author.Id).GetAwaiter().GetResult();
+            var author1 = ctx.Guild?.GetMemberAsync(author.Id).GetAwaiter().GetResult();
 
-            var roles = author1.Roles.OrderByDescending(xr => xr.Position);
-            var role = roles.FirstOrDefault(xr => xr.Color.Value != 0);
-            var color = role.Color;
+            var color = DiscordColor.Blurple;
+            if (author1 != null)
+            {
+                var roles = author1.Roles.OrderByDescending(xr => xr.Position);
+                var role = roles.FirstOrDefault(xr => xr.Color.Value != 0);
+                color = role.Color;
+            }
 
             var embed = this.BuildEmbed(null, msq.Content, 0);
             embed.Color = color;

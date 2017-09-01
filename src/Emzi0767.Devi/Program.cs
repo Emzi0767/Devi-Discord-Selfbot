@@ -9,9 +9,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using Emzi0767.Devi.Crypto;
 using Emzi0767.Devi.Services;
-using Emzi0767.Devi.Services.Data;
 using Newtonsoft.Json;
 
 // DEvI: Dynamic Evaluation Implement
@@ -144,14 +145,14 @@ namespace Emzi0767.Devi
 
             discord.GuildAvailable += Discord_GuildAvailable;
             discord.MessageCreated += Discord_MessageReceived;
-            discord.MessageUpdate += Discord_MessageUpdate;
-            discord.MessageDelete += Discord_MessageDelete;
-            discord.MessageBulkDelete += Discord_MessageBulkDelete;
+            discord.MessageUpdated += Discord_MessageUpdate;
+            discord.MessageDeleted += Discord_MessageDelete;
+            discord.MessagesBulkDeleted += Discord_MessageBulkDelete;
             discord.Ready += Discord_Ready;
             discord.DebugLogger.LogMessageReceived += Discord_Log;
-            discord.MessageReactionAdd += Discord_ReactionAdded;
-            discord.MessageReactionRemove += Discord_ReactionRemoved;
-            discord.ClientError += Discord_ClientError;
+            discord.MessageReactionAdded += Discord_ReactionAdded;
+            discord.MessageReactionRemoved += Discord_ReactionRemoved;
+            discord.ClientErrored += Discord_ClientError;
             
             await discord.ConnectAsync();
 
@@ -343,7 +344,7 @@ namespace Emzi0767.Devi
         {
             var delmg = new List<DiscordMessage>();
             foreach (var msg in DeviMessageTracker)
-                if (msg.CreationDate.AddMinutes(30).ToLocalTime() < DateTimeOffset.Now)
+                if (msg.CreationTimestamp.AddMinutes(30).ToLocalTime() < DateTimeOffset.Now)
                     delmg.Add(msg);
             foreach (var msg in delmg)
                 DeviMessageTracker.Remove(msg);

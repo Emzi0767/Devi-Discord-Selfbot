@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
+using DSharpPlus.Entities;
 using Emzi0767.Devi.Crypto;
 using Newtonsoft.Json;
 using Npgsql;
@@ -77,7 +78,7 @@ namespace Emzi0767.Devi.Services
                     cmd.Parameters.AddWithValue("message_id", NpgsqlDbType.Bigint, (long)msg.Id);
                     cmd.Parameters.AddWithValue("author_id", NpgsqlDbType.Bigint, (long)msg.Author.Id);
                     cmd.Parameters.AddWithValue("channel_id", NpgsqlDbType.Bigint, (long)msg.Channel.Id);
-                    cmd.Parameters.AddWithValue("created", NpgsqlDbType.TimestampTZ, msg.CreationDate);
+                    cmd.Parameters.AddWithValue("created", NpgsqlDbType.TimestampTZ, msg.CreationTimestamp);
                     cmd.Parameters.AddWithValue("edits", NpgsqlDbType.TimestampTZ | NpgsqlDbType.Array, new DateTimeOffset[] { });
                     cmd.Parameters.AddWithValue("contents", NpgsqlDbType.Text | NpgsqlDbType.Array, new[] { enconts.ToBase64() });
                     cmd.Parameters.AddWithValue("embeds", NpgsqlDbType.Jsonb | NpgsqlDbType.Array, new[] { JsonConvert.SerializeObject(msg.Embeds) });
@@ -241,7 +242,7 @@ namespace Emzi0767.Devi.Services
                 {
                     var tbl = string.Concat(this.Settings.TablePrefix, "message_log");
 
-                    if (msg.CreationDate.ToLocalTime() == which)
+                    if (msg.CreationTimestamp.ToLocalTime() == which)
                         cmd.CommandText = string.Concat("SELECT contents[1] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE AND created=@which LIMIT 1;");
                     else
                         cmd.CommandText = string.Concat("SELECT contents[array_position(edits, @which) + 1] FROM ", tbl, " WHERE message_id=@message_id AND channel_id=@channel_id AND edited IS TRUE AND array_position(edits, @which) IS NOT NULL LIMIT 1;");

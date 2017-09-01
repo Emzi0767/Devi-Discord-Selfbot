@@ -6,9 +6,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus.Entities;
 using Emzi0767.Devi.Services;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
@@ -101,11 +101,10 @@ namespace Emzi0767.Devi
         }
 
         [Command("nitro")]
-        public async Task NitroAsync(CommandContext ctx, ulong guild, ulong channel)
+        public async Task NitroAsync(CommandContext ctx, ulong channel)
         {
             var cln = ctx.Client;
-            var gld = cln.Guilds.FirstOrDefault(xg => xg.Key == guild);
-            var chn = gld.Value.Channels.FirstOrDefault(xc => xc.Id == channel);
+            var chn = await cln.GetChannelAsync(channel);
 
             var embed = new DiscordEmbedBuilder
             {
