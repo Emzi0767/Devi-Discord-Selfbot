@@ -1,15 +1,17 @@
 # Dynamic Evaluation Implement by Emzi0767
-
 [![Emzi's Central Dispatch](https://discordapp.com/api/guilds/207879549394878464/widget.png)](https://discord.gg/rGKrJDR)
 
-## ABOUT
+## WARNING
+This code is no longer maintained, and selfbots are officially prohibited. Using Devi (or any selfbot) is a violation of ToS and will result in your account being terminated.
 
+You have been warned.
+
+## ABOUT
 A Discord selfbot built on top of [DSharpPlus library](https://github.com/NaamloosDT/DSharpPlus). It's designed to provide a C# evaluator, quoting, and some other functionality.
 
 More information is available on [its GitHub page](https://emzi0767.github.io/discord/devi/).
 
 ## BUILDING
-
 You need .NET Core SDK 2.0 to build the project, and .NET Core 2.0.0 runtime to run it. Both are available [here](https://www.microsoft.com/net/download/core ".NET Core download page").
 
 1. In order to build this project, you will need to add the following package sources to your NuGet:
@@ -21,11 +23,9 @@ You need .NET Core SDK 2.0 to build the project, and .NET Core 2.0.0 runtime to 
    * You can optionally package it as a self-contained application by specifying target RID such as `linux-x64` or `linux-arm` (`dotnet publish -c Release -r linux-x64`).
 
 ## SETUP
-
 In order for bot to run, you will need to set up your environment. 
 
 ### POSTGRESQL DATABASE
-
 The PostgreSQL database is optional if you disable it in the bot's config. If you do intend to use the DB-backed features of the bot, you need to proceed with the setup.
 
 1. If you haven't done so already, install PostgreSQL server (version 9.6 or better).
@@ -34,7 +34,6 @@ The PostgreSQL database is optional if you disable it in the bot's config. If yo
 4. Execute the attached `schema.sql` script as the created user.
 
 ### THE BOT ITSELF
-
 1. Create a directory for the bot.
 2. Copy bot's Publish results to the bot directory.
 3. Copy `devi.json`, `emoji.json`, and `donger.json` from project source to bot's directory.
@@ -42,7 +41,6 @@ The PostgreSQL database is optional if you disable it in the bot's config. If yo
    * If you do not wish to use the DB-backed features of the bot, the config has an option to disable the database backend.
 
 ## RUNNING
-
 Execute `dotnet Emzi0767.Devi.dll` in your command line.
 
 If you packaged the bot as a self-contained app, you will need to run the bot's executable. That is `Emzi0767.Devi.exe` for Windows, or `./Emzi0767.Devi` for GNU/Linux.
@@ -50,11 +48,9 @@ If you packaged the bot as a self-contained app, you will need to run the bot's 
 It is recommended you run the bot in a terminal multiplexer, such as `screen` or `tmux` when running on GNU/Linux.
 
 ## SUPPORT ME
-
 If you feel like supporting me by providing me with currency that I can exchange for goods and services, you can do so on [my Patreon](https://www.patreon.com/emzi0767).
 
 ## ADDITIONAL HELP
-
 Should you still have any questions regarding the bot, feel free to join my server. I'll try to answer an questions:
 
 [![Emzi's Central Dispatch](https://discordapp.com/api/guilds/207879549394878464/embed.png?style=banner1)](https://discord.gg/rGKrJDR)
